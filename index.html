@@ -97,6 +97,25 @@
             border: none;
         }
 
+        /* --- Cursor Tooltip --- */
+        .cursor-tooltip {
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-color);
+            font-size: 0.9rem;
+            border-radius: 20px;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 10000;
+            white-space: nowrap;
+            font-weight: 300;
+        }
+
         /* --- Layout --- */
         section {
             padding: 10vh 5vw;
@@ -273,63 +292,6 @@
 
         /* --- SOCIALS SECTION (3x3 Grid) --- */
         .socials-section {
-            padding: 10vh 10vw;
-            text-align: center;
-        }
-
-        .social-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 3rem;
-            max-width: 600px;
-            margin: 4rem auto;
-            align-items: center;
-            justify-items: center;
-        }
-
-        .social-item {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.3s ease;
-            color: rgba(255,255,255,0.5); 
-            cursor: none; 
-        }
-
-        .social-item svg {
-            width: 100%;
-            height: 100%;
-            fill: currentColor;
-        }
-
-        .social-item:hover {
-            color: var(--accent-color);
-            transform: scale(1.4);
-            filter: drop-shadow(0 0 10px var(--accent-color));
-        }
-
-        /* YouTube Center */
-        .youtube-center {
-            width: 70px;
-            height: 70px;
-            color: #ff0000 !important; 
-            filter: drop-shadow(0 0 15px rgba(255,0,0,0.3));
-        }
-        .youtube-center:hover {
-            transform: scale(1.3) !important;
-            filter: drop-shadow(0 0 30px rgba(255,0,0,0.8));
-        }
-
-        /* Mystery Button */
-        .mystery-item {
-            font-size: 2rem;
-            font-weight: bold;
-            font-family: 'Courier New', monospace;
-        }
- /* --- SOCIALS SECTION (3x3 Grid) --- */
-        .socials-section {
             padding: 10vh 5vw;
             text-align: center;
         }
@@ -504,15 +466,15 @@
                 <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
             </a>
 
-            <div class="social-item hover-trigger" onclick="copyToClipboard('messovian', 'Copied Discord!')">
+            <div class="social-item hover-trigger" onclick="copyToClipboard('messovian', 'Copied username')">
                 <svg viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.419-2.1568 2.419zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.419-2.1568 2.419z"/></svg>
             </div>
 
-            <div class="social-item hover-trigger" onclick="copyToClipboard('messovianbutmemems@gmail.com', 'Copied Meme Mail!')">
+            <div class="social-item hover-trigger" onclick="copyToClipboard('messovianbutmemems@gmail.com', 'Copied messovianbutmemems@gmail.com')">
                 <svg viewBox="0 0 24 24"><path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/></svg>
             </div>
 
-            <div class="social-item hover-trigger" onclick="copyToClipboard('messovianhcr@gmail.com', 'Copied Work Mail!')">
+            <div class="social-item hover-trigger" onclick="copyToClipboard('messovianhcr@gmail.com', 'Copied messovianhcr@gmail.com')">
                 <svg viewBox="0 0 24 24"><path d="M0 3v18h24v-18h-24zm6.623 7.929l-4.623 5.712v-11.174l4.623 5.462zm2.169 2.688l3.208 3.791 3.208-3.791 6.792 7.383h-20l6.792-7.383zm12.832-2.688l3.376 4.028v-11.233l-3.376 7.205zm-6.495 5.263l-3.129-3.697-3.129 3.697-6.871-7.471v-1.848l10 7.638 10-7.638v1.848l-6.871 7.471z"/></svg>
             </div>
 
@@ -682,7 +644,7 @@
                window.open("https://www.hoyolab.com/accountCenter/postList?id=111155052", "_blank");
            } else {
                // Show floating text
-               showTooltip("Click more and you will find out...");
+               showTooltip("Click more to find out");
            }
        }
 
@@ -714,7 +676,7 @@
        if(mysteryBtn) {
            mysteryBtn.addEventListener('mouseenter', () => {
                if (mysteryClicks > 0 && mysteryClicks < 10) {
-                   showTooltip("Click more and you will find out...");
+                   showTooltip("Click more to find out");
                }
            });
            mysteryBtn.addEventListener('mouseleave', () => {
