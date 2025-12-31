@@ -182,10 +182,11 @@
         /* --- Specific Hover Effects --- */
         /* 1. Main Title Glow */
         h1 {
-            transition: all 0.4s ease;
+            transition: transform 0.4s ease, opacity 0.4s ease;
             /* Permanent Glow */
             text-shadow: 0 0 30px var(--accent-color), 0 0 60px var(--accent-color), 0 0 90px var(--accent-color);
             opacity: 0;
+            will-change: transform;
             /* Fix Flash on Load */
         }
 
@@ -201,7 +202,8 @@
             max-width: 0;
             white-space: nowrap;
             vertical-align: bottom;
-            transition: all 2.5s ease-in-out;
+            transition: max-width 2.5s ease-in-out, opacity 2.5s ease-in-out;
+            will-change: max-width, opacity;
         }
 
         h1:hover .messa-suffix {
@@ -244,8 +246,10 @@
             margin-top: 10px;
             letter-spacing: 2px;
             text-transform: uppercase;
-            transform: translateY(-20px);
-            transition: all 1.0s ease;
+            transform: translateY(-20px) translateZ(0);
+            /* GPU promote */
+            transition: transform 1.0s ease, opacity 1.0s ease;
+            will-change: transform, opacity;
         }
 
         /* Reveal pronouns when hovering H1 or the wrapper */
@@ -410,7 +414,8 @@
             width: 100%;
             height: 100%;
             background: var(--bg-color);
-            z-index: 1000;
+            z-index: 5000;
+            /* Increased to be above projectsSection but below cursor */
             display: none;
             flex-direction: column;
             overflow-y: auto;
@@ -964,7 +969,7 @@
             // Animate background color to solid black
             gsap.to(detailsOverlay, {
                 backgroundColor: "rgba(5, 5, 5, 1)",
-                duration: 0.8,
+                duration: 1.2, // Slower: 0.5 -> 1.2
                 ease: "power3.inOut"
             });
 
@@ -976,12 +981,12 @@
             dtDesc.innerText = desc;
 
             Flip.from(state, {
-                duration: 0.8,
+                duration: 1.2, // Slower: 0.6 -> 1.2
                 ease: "power3.inOut",
                 absolute: true,
                 simple: true,
                 onComplete: () => {
-                    gsap.to([detailsContent, closeBtn], { opacity: 1, duration: 0.4 });
+                    gsap.to([detailsContent, closeBtn], { opacity: 1, duration: 1.0 }); // Slower: 0.3 -> 1.0
                     closeBtn.style.pointerEvents = "all";
                 }
             });
@@ -990,66 +995,84 @@
         function closeProject() {
             if (!activeCardImage || !openedCardId) return;
 
+            console.log("Closing project...", openedCardId);
+
             // 1. Capture State
             const state = Flip.getState(activeCardImage);
-
-            // Use the stored ID to find the original home
             const originalCard = document.getElementById(openedCardId);
 
-            // 2. Fade out text
+            // 2. Fade out text immediately
             gsap.to([detailsContent, closeBtn], {
                 opacity: 0,
-                duration: 0.2,
+                duration: 0.5 // Slower fade out too: 0.2 -> 0.5
+            });
+            closeBtn.style.pointerEvents = "none";
+
+            // 3. Move image back immediately
+            if (originalCard) {
+                const container = originalCard.querySelector('.card-image-container');
+                if (container) {
+                    container.insertBefore(activeCardImage, container.firstChild);
+                } else {
+                    originalCard.insertBefore(activeCardImage, originalCard.firstChild);
+                }
+
+                // Force layout height calculation
+                const h = originalCard.offsetHeight;
+                originalCard.style.height = h + "px";
+                originalCard.style.zIndex = "9999";
+                originalCard.style.overflow = "visible";
+            }
+
+            // CRITICAL FIX: Ensure overlay stays visible but fades out opacity
+            // Grid should not pop over the overlay now because overlay z-index is 5000
+            gsap.to(detailsOverlay, {
+                opacity: 0,
+                duration: 1.2, // Slower: 0.6 -> 1.2
+                ease: "power2.inOut",
                 onComplete: () => {
-                    closeBtn.style.pointerEvents = "none";
+                    console.log("Overlay fade complete");
+                    detailsOverlay.style.display = "none";
+                }
+            });
 
-                    // 3. Move image back
+            // 4. Animate Image
+            // REMOVED: projectsSection.style.zIndex = 2000; (This was causing the jump!)
+
+            Flip.from(state, {
+                duration: 1.2, // Slower: 0.6 -> 1.2
+                ease: "power3.inOut",
+                absolute: true,
+                zIndex: 9999,
+                props: "filter",
+                onComplete: () => {
+                    console.log("Flip animation complete");
+                    // REMOVED: if (projectsSection) projectsSection.style.zIndex = "";
+
                     if (originalCard) {
-                        // Check if we need to insert into container (for card-1)
-                        const container = originalCard.querySelector('.card-image-container');
-                        if (container) {
-                            container.insertBefore(activeCardImage, container.firstChild);
+                        originalCard.style.zIndex = "";
+                        originalCard.style.overflow = "hidden";
+                        originalCard.style.height = "";
+
+                        // Fix Text Animation: Ensure element is found and reset
+                        const cardInfo = originalCard.querySelector('.card-info');
+                        if (cardInfo) {
+                            console.log("Animate card info in", cardInfo);
+                            // Ensure it's visible but transparent first if needed?
+                            // It was set to opacity: 0 in openProject.
+                            gsap.to(cardInfo, {
+                                opacity: 1,
+                                y: 0,
+                                duration: 1.5, // Slower text flying up: 0.6 -> 1.5
+                                ease: "power2.out",
+                                clearProps: "transform" // Clean up after
+                            });
                         } else {
-                            originalCard.insertBefore(activeCardImage, originalCard.firstChild);
+                            console.error("Card info not found for", openedCardId);
                         }
-
-                        // Force layout height calculation
-                        const h = originalCard.offsetHeight;
-                        originalCard.style.height = h + "px"; // Lock height to prevent collapse
-
-                        // Allow image to bleed out of card during animation
-                        originalCard.style.zIndex = "9999";
-                        originalCard.style.overflow = "visible";
                     }
-
-                    // Fade out overlay
-                    gsap.to(detailsOverlay, { opacity: 0, duration: 0.8 });
-
-                    // 4. Animate
-                    Flip.from(state, {
-                        duration: 0.8,
-                        ease: "power3.inOut",
-                        absolute: true,
-                        zIndex: 9999, // Ensure it stays on top
-                        props: "filter",
-                        onComplete: () => {
-                            detailsOverlay.style.display = "none";
-
-                            if (originalCard) {
-                                originalCard.style.zIndex = "";
-                                originalCard.style.overflow = "hidden";
-                                originalCard.style.height = ""; // Unlock height
-
-                                // Fade text/gradient back in
-                                const cardInfo = originalCard.querySelector('.card-info');
-                                if (cardInfo) {
-                                    gsap.to(cardInfo, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" });
-                                }
-                            }
-                            activeCardImage = null;
-                            openedCardId = null;
-                        }
-                    });
+                    activeCardImage = null;
+                    openedCardId = null;
                 }
             });
         }
