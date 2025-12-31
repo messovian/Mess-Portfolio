@@ -185,6 +185,8 @@
             transition: all 0.4s ease;
             /* Permanent Glow */
             text-shadow: 0 0 30px var(--accent-color), 0 0 60px var(--accent-color), 0 0 90px var(--accent-color);
+            opacity: 0;
+            /* Fix Flash on Load */
         }
 
         h1:hover {
@@ -273,6 +275,8 @@
             font-size: 1.5rem;
             margin-top: 2rem;
             font-weight: 300;
+            opacity: 0;
+            /* Fix Flash on Load */
         }
 
         .hero-description {
@@ -280,7 +284,8 @@
             max-width: 800px;
             font-size: 1.1rem;
             line-height: 1.6;
-            opacity: 0.8;
+            opacity: 0;
+            /* Fix Flash on Load */
             font-weight: 300;
         }
 
@@ -289,6 +294,8 @@
             height: 2rem;
             overflow: hidden;
             margin-top: 1rem;
+            opacity: 0;
+            /* Fix Flash on Load */
         }
 
         .role-text {
