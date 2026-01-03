@@ -30,7 +30,8 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            cursor: none;
+            cursor: none !important;
+            /* FORCE CUSTOM CURSOR EVERYWHERE */
         }
 
         ::selection {
@@ -538,14 +539,16 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            mix-blend-mode: exclusion;
+            /* mix-blend-mode removed */
             pointer-events: auto;
             /* Ensure clickable */
             opacity: 0;
         }
 
         .close-btn:hover {
-            background: #fff;
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            /* Match border */
             color: #000;
             transform: rotate(90deg);
         }
@@ -1014,9 +1017,17 @@
             setMouseY(mousePos.y);
         });
 
-        document.querySelectorAll('.hover-trigger').forEach(trigger => {
-            trigger.addEventListener('mouseenter', () => cursor.classList.add('active'));
-            trigger.addEventListener('mouseleave', () => cursor.classList.remove('active'));
+        // --- Event Delegation for Dynamic Content (Fixes Grid Hover) ---
+        document.body.addEventListener('mouseover', (e) => {
+            if (e.target.closest('.hover-trigger') || e.target.closest('a') || e.target.closest('button')) {
+                cursor.classList.add('active');
+            }
+        });
+
+        document.body.addEventListener('mouseout', (e) => {
+            if (e.target.closest('.hover-trigger') || e.target.closest('a') || e.target.closest('button')) {
+                cursor.classList.remove('active');
+            }
         });
 
         // --- 2. Title Text Morphing ---
@@ -1036,6 +1047,7 @@
         }, 3000);
 
         // --- 3. FLIP Animation (Project Expansion) ---
+        let isAnimating = false; // Prevent rapid-click glitches
         let activeCardImage = null;
         let openedCardId = null; // Track which card was opened
         const detailsOverlay = document.querySelector('.details-overlay');
@@ -1068,18 +1080,18 @@
                     </div>
 
                     <div class="masonry-grid">
-                        <div class="photo-card"><img src="images/Photography/Portrait 1.webp" loading="lazy"></div>
-                        <div class="photo-card"><img src="images/Photography/nature 1.webp" loading="lazy"></div>
-                        <div class="photo-card"><img src="images/Photography/wildlife 1.webp" loading="lazy"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/Portrait 1.webp" loading="lazy"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/nature 1.webp" loading="lazy"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/wildlife 1.webp" loading="lazy"></div>
                         
-                        <div class="photo-card"><img src="images/Photography/Portrait 2.webp" loading="lazy"></div>
-                        <div class="photo-card"><img src="images/Photography/object 1.webp" loading="lazy"></div>
-                        <div class="photo-card"><img src="images/Photography/nature 3.webp" loading="lazy"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/Portrait 2.webp" loading="lazy"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/object 1.webp" loading="lazy"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/nature 3.webp" loading="lazy"></div>
                         
-                        <div class="photo-card"><img src="images/Photography/wildlife 2.webp" loading="lazy"></div>
-                        <div class="photo-card"><img src="images/Photography/Portrait 5.webp" loading="lazy"></div>
-                        <div class="photo-card"><img src="images/Photography/object 3.webp" loading="lazy"></div>
-                        <div class="photo-card"><img src="images/Photography/wildlife 4.webp" loading="lazy"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/wildlife 2.webp" loading="lazy"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/Portrait 5.webp" loading="lazy"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/object 3.webp" loading="lazy"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/wildlife 4.webp" loading="lazy"></div>
                     </div>
 
                     <div class="tech-specs" style="margin-top: 5rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); opacity: 0.5; font-family: monospace; font-size: 0.9rem; text-align: center;">
@@ -1091,6 +1103,9 @@
 
 
         function openProject(cardId, title, desc, imgSrc) {
+            if (isAnimating) return; // Ignore if busy
+            isAnimating = true;
+
             const card = document.getElementById(cardId);
             const img = card.querySelector('img');
 
@@ -1100,6 +1115,9 @@
 
             // LOCK MAIN SCROLL
             if (window.lenis) window.lenis.stop();
+
+            // FORCE CURSOR RESET (Fix: Access variable directly)
+            if (cursor) cursor.classList.remove('active');
 
             activeCardImage = img;
             openedCardId = cardId;
@@ -1161,6 +1179,7 @@
                     closeBtn.style.pointerEvents = "all";
 
                     // Staggered Text
+                    // Staggered Text
                     if (projectContent[cardId]) {
                         gsap.fromTo(".story-text",
                             { y: 30, opacity: 0 },
@@ -1168,8 +1187,13 @@
                         );
                         gsap.fromTo(".photo-card",
                             { y: 50, opacity: 0 },
-                            { y: 0, opacity: 1, duration: 1, stagger: 0.1, ease: "power2.out", delay: 0.5 }
+                            {
+                                y: 0, opacity: 1, duration: 1, stagger: 0.1, ease: "power2.out", delay: 0.5,
+                                onComplete: () => isAnimating = false // Done!
+                            }
                         );
+                    } else {
+                        isAnimating = false; // Done if no content
                     }
                 }
             });
@@ -1196,9 +1220,14 @@
 
         function closeProject() {
             if (!activeCardImage || !openedCardId) return;
+            if (isAnimating) return; // Ignore if busy
+            isAnimating = true;
 
             // UNLOCK MAIN SCROLL
             if (window.lenis) window.lenis.start();
+
+            // FORCE CURSOR RESET (Fix: Access variable directly)
+            if (cursor) cursor.classList.remove('active');
 
             // 1. Fade out UI and Flashlight Layer
             gsap.to([detailsContent, closeBtn], { opacity: 0, duration: 0.5 });
@@ -1280,6 +1309,7 @@
 
                     activeCardImage = null;
                     openedCardId = null;
+                    isAnimating = false; // Reset lock
                 }
             });
         }
