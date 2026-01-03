@@ -1324,18 +1324,30 @@
             const lightbox = document.getElementById('lightbox');
             activeLightboxImg = img;
 
-            // Create a clone for the lightbox
-            const lbImg = img.cloneNode();
+            // FIX: Assign shared ID for Flip identity
+            const flipId = 'lightbox-' + Date.now();
+            img.dataset.flipId = flipId;
 
             const state = Flip.getState(img);
+
+            // Create a clone for the lightbox
+            const lbImg = img.cloneNode();
+            lbImg.dataset.flipId = flipId; // Match ID
+
+            // FIX: Prevent lazy loading glitch on clone
+            lbImg.loading = "eager";
 
             lightbox.innerHTML = '';
             lightbox.appendChild(lbImg);
             lightbox.style.display = 'flex';
 
+            // FIX: Start Transparent & Animate BG
+            gsap.set(lightbox, { backgroundColor: "rgba(0,0,0,0)" });
+            gsap.to(lightbox, { backgroundColor: "rgba(0,0,0,0.95)", duration: 1, ease: "power2.out" });
+
             Flip.from(state, {
                 targets: lbImg,
-                duration: 0.6,
+                duration: 1,
                 ease: "power3.inOut",
                 scale: true
             });
@@ -1346,17 +1358,23 @@
             const lbImg = lightbox.querySelector('img');
 
             if (activeLightboxImg && lbImg) {
-                const state = Flip.getState(activeLightboxImg);
+                // FIX: Animate BG out
+                gsap.to(lightbox, { backgroundColor: "rgba(0,0,0,0)", duration: 1, ease: "power2.out" });
 
-                Flip.to(state, {
-                    targets: lbImg,
-                    duration: 0.5,
-                    ease: "power3.inOut",
+                // FIX: Use Flip.fit to fly back to original
+                Flip.fit(lbImg, activeLightboxImg, {
                     scale: true,
+                    duration: 1,
+                    ease: "power3.inOut",
                     onComplete: () => {
                         lightbox.style.display = 'none';
                         lightbox.innerHTML = '';
+
+                        // Clean up ID
+                        if (activeLightboxImg) delete activeLightboxImg.dataset.flipId;
+
                         activeLightboxImg = null;
+                        lightbox.style.backgroundColor = "";
                     }
                 });
             } else {
