@@ -265,8 +265,10 @@
         }
 
         /* Forward hover effect to H1 when wrapper is hovered */
-        .title-wrapper:hover h1 {
-            transform: scale(1.05);
+        .hover-trigger:hover {
+            color: #fff;
+            /* Layout-safe bolding using text-shadow */
+            text-shadow: 0 0 .65px #fff, 0 0 .65px #fff;
         }
 
         .title-wrapper {
@@ -419,43 +421,111 @@
             display: none;
             flex-direction: column;
             overflow-y: auto;
+            /* Scroll Fix: Allow momentum scrolling on iOS */
+            -webkit-overflow-scrolling: touch;
         }
 
+        /* Full Screen Hero Container */
         .details-hero {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 60vh;
-            position: relative;
+            height: 100vh;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
         }
 
-        .details-hero img {
+        /* The two layers for Flashlight Effect */
+        .hero-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: transform 0.1s;
+            pointer-events: none;
+            /* KEY FIX: Let clicks pass through */
         }
 
+        .photo-card {
+            background: #111;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+            position: relative;
+            cursor: pointer;
+            /* Ensure pointer cursor */
+        }
+
+        .hero-dim {
+            opacity: 0.3;
+            filter: blur(4px);
+            /* Just blur, no grayscale */
+        }
+
+        .hero-bright {
+            opacity: 1;
+            filter: contrast(1.1) brightness(1.1);
+            -webkit-mask-image: radial-gradient(circle 300px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);
+            mask-image: radial-gradient(circle 300px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);
+            pointer-events: none;
+            /* Double check */
+        }
+
+        /* Updated Detail Content Layout */
         .details-content {
+            position: relative;
+            z-index: 5;
+            margin-top: 30vh;
+            /* Start higher up */
             padding: 4rem 10vw;
+            min-height: 100vh;
             opacity: 0;
-            max-width: 800px;
-            margin: 0 auto;
+            text-align: center;
+            pointer-events: auto;
         }
 
         .details-title {
-            font-size: 3rem;
-            margin-bottom: 1rem;
+            font-size: 4rem;
+            margin-bottom: 2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: -2px;
+
+            /* RESTORED TO FLOW */
+            position: relative;
+            width: 100%;
+            text-align: center;
+            /* Allow selection and interaction */
+            pointer-events: auto;
+            user-select: text;
+
+            /* Cinematic Shadow for Readability */
+            text-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 2px 10px rgba(0, 0, 0, 0.8);
         }
 
         .details-desc {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             line-height: 1.6;
+            margin-bottom: 2rem;
             color: #ccc;
+            /* Shadow for readability */
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.8);
+        }
+
+        /* Story Text Shadow */
+        .story-text {
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
         }
 
         .close-btn {
             position: fixed;
             top: 2rem;
             right: 2rem;
-            z-index: 1001;
+            z-index: 10002;
             padding: 1rem;
             background: rgba(0, 0, 0, 0.5);
             border: 1px solid white;
@@ -466,15 +536,42 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            mix-blend-mode: exclusion;
+            pointer-events: auto;
+            /* Ensure clickable */
             opacity: 0;
-            pointer-events: none;
-            transition: background 0.3s ease, border-color 0.3s ease;
         }
 
         .close-btn:hover {
-            background: var(--accent-color);
-            border-color: var(--accent-color);
-            color: var(--bg-color);
+            background: #fff;
+            color: #000;
+            transform: rotate(90deg);
+        }
+
+        /* --- LIGHTBOX --- */
+        .lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10005;
+            /* Highest */
+            cursor: zoom-out;
+        }
+
+        .lightbox img {
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: contain;
+            border-radius: 4px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
         }
 
         /* --- SOCIALS SECTION (3x3 Grid) --- */
@@ -744,7 +841,7 @@
     <section class="projects-section">
         <div style="display: flex; justify-content: flex-end; width: 100%;">
             <div class="section-header hover-trigger" onclick="scrollToProjects()"
-                style="display: inline-flex; align-items: center; gap: 10px;">
+                style="display: inline-flex; align-items: center; gap: 10px; cursor: pointer;">
                 Selected Works
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
@@ -758,7 +855,7 @@
 
             <!-- 1. Photography -->
             <div class="card hover-trigger" id="card-1"
-                onclick="openProject('card-1', 'Portfolio', 'A collection of my best photography work ranging from portraits to landscapes.', 'images/4 images in main page/photography.webp')">
+                onclick="openProject('card-1', 'Photography', 'A collection of my best photography work ranging from portraits to landscapes.', 'images/4 images in main page/photography.webp')">
                 <div class="card-image-container">
                     <img src="images/4 images in main page/photography.webp" alt="Photography" class="card-image"
                         data-flip-id="img-1">
@@ -802,7 +899,7 @@
         </div>
     </section>
 
-    <div class="details-overlay">
+    <div class="details-overlay" data-lenis-prevent>
         <div class="close-btn hover-trigger" onclick="closeProject()">X</div>
         <div class="details-hero" id="details-hero-container"></div>
         <div class="details-content">
@@ -882,6 +979,10 @@
         </div>
     </section>
 
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <!-- Image injected here -->
+    </div>
+
     <script>
         gsap.registerPlugin(Flip, ScrollTrigger);
 
@@ -946,6 +1047,49 @@
 
         // Photography variables removed
 
+        // Content Database
+        const projectContent = {
+            'card-1': {
+                title: 'PHOTOGRAPHY',
+                html: `
+                    <div class="story-container" style="margin-bottom: 4rem;">
+                        <p class="story-text" style="font-size: 1.5rem; font-weight: 300; margin-bottom: 2rem; line-height: 1.6;">
+                            <span style="color: var(--accent-color); font-weight: 600;">Why do I shoot?</span> Simple. Because I love it.
+                        </p>
+                        <p class="story-text" style="font-size: 1.1rem; color: #ccc; margin-bottom: 1.5rem; line-height: 1.8;">
+                            Photography starts as a hobby, a quiet moment between me and the world, but it becomes something much more profound. It makes me genuinely happy. There is a specific kind of joy in freezing a fleeting second—a laugh, a ray of light, a hidden texture—and keeping it forever.
+                        </p>
+                        <p class="story-text" style="font-size: 1.1rem; color: #ccc; margin-bottom: 1.5rem; line-height: 1.8;">
+                            It helps me archive amazing memories, not just for myself, but for others too. I believe a photo is a bridge. It creates invisible bonds between people, between the subject and the viewer, and between the world and me.
+                        </p>
+                        <p class="story-text" style="font-size: 1.1rem; color: #ccc; margin-bottom: 3rem; line-height: 1.8;">
+                            These are the stories I've collected along the way.
+                        </p>
+                    </div>
+
+                    <div class="masonry-grid">
+                        <div class="photo-card"><img src="images/Photography/Portrait 1.webp" loading="lazy"></div>
+                        <div class="photo-card"><img src="images/Photography/nature 1.webp" loading="lazy"></div>
+                        <div class="photo-card"><img src="images/Photography/wildlife 1.webp" loading="lazy"></div>
+                        
+                        <div class="photo-card"><img src="images/Photography/Portrait 2.webp" loading="lazy"></div>
+                        <div class="photo-card"><img src="images/Photography/object 1.webp" loading="lazy"></div>
+                        <div class="photo-card"><img src="images/Photography/nature 3.webp" loading="lazy"></div>
+                        
+                        <div class="photo-card"><img src="images/Photography/wildlife 2.webp" loading="lazy"></div>
+                        <div class="photo-card"><img src="images/Photography/Portrait 5.webp" loading="lazy"></div>
+                        <div class="photo-card"><img src="images/Photography/object 3.webp" loading="lazy"></div>
+                        <div class="photo-card"><img src="images/Photography/wildlife 4.webp" loading="lazy"></div>
+                    </div>
+
+                    <div class="tech-specs" style="margin-top: 5rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); opacity: 0.5; font-family: monospace; font-size: 0.9rem; text-align: center;">
+                        [ GEAR ] &nbsp; Canon EOS R8  &nbsp;|&nbsp; 50mm f1.4 + 70-200mm f2.8 &nbsp;|&nbsp; Natural Light &nbsp;|&nbsp; Lightroom
+                    </div>
+                `
+            }
+        };
+
+
         function openProject(cardId, title, desc, imgSrc) {
             const card = document.getElementById(cardId);
             const img = card.querySelector('img');
@@ -954,127 +1098,240 @@
             const cardInfo = card.querySelector('.card-info');
             if (cardInfo) gsap.set(cardInfo, { opacity: 0, y: 20 });
 
-            activeCardImage = img;
-            openedCardId = cardId; // Store the ID!
+            // LOCK MAIN SCROLL
+            if (window.lenis) window.lenis.stop();
 
+            activeCardImage = img;
+            openedCardId = cardId;
+
+            // 1. Capture State
             const state = Flip.getState(img);
 
-            // Reset opacity for opening - essential because closeProject fades it to 0
-            detailsOverlay.style.opacity = 1;
+            // 2. Prepare Overlay
             detailsOverlay.style.display = "flex";
-
-            // Set initial background color to transparent for smooth fade in
+            // Make sure overlay is fully visible but transparent background
+            detailsOverlay.style.opacity = 1;
             gsap.set(detailsOverlay, { backgroundColor: "rgba(5, 5, 5, 0)" });
 
-            // Animate background color to solid black
+            detailsOverlay.scrollTo(0, 0);
+
+            // Animate background to black
             gsap.to(detailsOverlay, {
                 backgroundColor: "rgba(5, 5, 5, 1)",
-                duration: 1.2, // Slower: 0.5 -> 1.2
+                duration: 1.2,
                 ease: "power3.inOut"
             });
 
+            // 3. Move Image to Fixed Hero
+            detailsHero.innerHTML = ''; // Clear previous
             detailsHero.appendChild(img);
 
+            // Apply Dim Class immediately but force styles to look like original for the start of FLIP
+            img.classList.add('hero-layer', 'hero-dim');
+            // We want it to START looking normal (opacity 1, no blur) and END looking dimmed
 
-
-            dtTitle.innerText = title;
-            dtDesc.innerText = desc;
-
+            // 4. FLIP Animation
             Flip.from(state, {
-                duration: 1.2, // Slower: 0.6 -> 1.2
+                duration: 1.2,
                 ease: "power3.inOut",
                 absolute: true,
-                simple: true,
+                simple: false, // Allow complex props
+                onStart: () => {
+                    // Parallel Animation: Transform visually from Normal -> Dim
+                    gsap.fromTo(img,
+                        { filter: "blur(0px)", opacity: 1 },
+                        { filter: "blur(4px)", opacity: 0.3, duration: 1.2, ease: "power3.inOut" }
+                    );
+                },
                 onComplete: () => {
-                    gsap.to([detailsContent, closeBtn], { opacity: 1, duration: 1.0 }); // Slower: 0.3 -> 1.0
+                    // 5. Create Flashlight Layer (Bright)
+                    const layerBright = img.cloneNode();
+                    layerBright.className = 'hero-layer hero-bright';
+                    layerBright.classList.remove('hero-dim');
+                    // Reset filters on the new clone so it's bright
+                    gsap.set(layerBright, { filter: "contrast(1.1) brightness(1.1)", opacity: 0 });
+
+                    detailsHero.appendChild(layerBright);
+
+                    // Fade it in
+                    gsap.to(layerBright, { opacity: 1, duration: 1.0 });
+
+                    // Show Content
+                    gsap.to([detailsContent, closeBtn], { opacity: 1, duration: 1.0 });
                     closeBtn.style.pointerEvents = "all";
+
+                    // Staggered Text
+                    if (projectContent[cardId]) {
+                        gsap.fromTo(".story-text",
+                            { y: 30, opacity: 0 },
+                            { y: 0, opacity: 1, duration: 1, stagger: 0.2, ease: "power2.out" }
+                        );
+                        gsap.fromTo(".photo-card",
+                            { y: 50, opacity: 0 },
+                            { y: 0, opacity: 1, duration: 1, stagger: 0.1, ease: "power2.out", delay: 0.5 }
+                        );
+                    }
                 }
             });
+
+            // INJECT CONTENT
+            dtTitle.innerText = title;
+            if (projectContent[cardId]) {
+                dtDesc.style.display = 'none';
+                let dynamicContainer = document.getElementById('dynamic-content-container');
+                if (!dynamicContainer) {
+                    dynamicContainer = document.createElement('div');
+                    dynamicContainer.id = 'dynamic-content-container';
+                    detailsContent.appendChild(dynamicContainer);
+                }
+                dynamicContainer.innerHTML = projectContent[cardId].html;
+                dynamicContainer.style.display = 'block';
+            } else {
+                dtDesc.innerText = desc;
+                dtDesc.style.display = 'block';
+                const dyn = document.getElementById('dynamic-content-container');
+                if (dyn) dyn.style.display = 'none';
+            }
         }
 
         function closeProject() {
             if (!activeCardImage || !openedCardId) return;
 
-            console.log("Closing project...", openedCardId);
+            // UNLOCK MAIN SCROLL
+            if (window.lenis) window.lenis.start();
 
-            // 1. Capture State
-            const state = Flip.getState(activeCardImage);
-            const originalCard = document.getElementById(openedCardId);
-
-            // 2. Fade out text immediately
-            gsap.to([detailsContent, closeBtn], {
-                opacity: 0,
-                duration: 0.5 // Slower fade out too: 0.2 -> 0.5
-            });
+            // 1. Fade out UI and Flashlight Layer
+            gsap.to([detailsContent, closeBtn], { opacity: 0, duration: 0.5 });
             closeBtn.style.pointerEvents = "none";
 
-            // 3. Move image back immediately
-            if (originalCard) {
-                const container = originalCard.querySelector('.card-image-container');
-                if (container) {
-                    container.insertBefore(activeCardImage, container.firstChild);
-                } else {
-                    originalCard.insertBefore(activeCardImage, originalCard.firstChild);
-                }
-
-                // Force layout height calculation
-                const h = originalCard.offsetHeight;
-                originalCard.style.height = h + "px";
-                originalCard.style.zIndex = "9999";
-                originalCard.style.overflow = "visible";
+            const brightLayer = detailsHero.querySelector('.hero-bright');
+            if (brightLayer) {
+                gsap.to(brightLayer, { opacity: 0, duration: 0.5 });
             }
 
-            // CRITICAL FIX: Ensure overlay stays visible but fades out opacity
-            // Grid should not pop over the overlay now because overlay z-index is 5000
+            // 2. Animate Background to Transparent (Parallel)
             gsap.to(detailsOverlay, {
-                opacity: 0,
-                duration: 1.2, // Slower: 0.6 -> 1.2
-                ease: "power2.inOut",
+                backgroundColor: "rgba(5, 5, 5, 0)",
+                duration: 1.2,
+                ease: "power3.inOut",
                 onComplete: () => {
-                    console.log("Overlay fade complete");
-                    detailsOverlay.style.display = "none";
+                    // Only hide after everything (or rely on FLIP callback)
+                    // We'll let FLIP callback handle the final display: none
                 }
             });
 
-            // 4. Animate Image
-            // REMOVED: projectsSection.style.zIndex = 2000; (This was causing the jump!)
+            // 3. Prepare FLIP Return
+            const dimLayer = activeCardImage; // The original img
+            const originalCard = document.getElementById(openedCardId);
 
+            if (!dimLayer || !originalCard) return;
+
+            const state = Flip.getState(dimLayer);
+
+            // 4. Reparent Immediately
+            detailsHero.innerHTML = ''; // Clear hero container
+
+            const container = originalCard.querySelector('.card-image-container') || originalCard;
+
+            // KEY FIX: Allow overflow during animation
+            originalCard.style.overflow = "visible";
+            originalCard.style.zIndex = "10000"; // Float above others
+
+            container.insertBefore(dimLayer, container.firstChild);
+
+            // 5. Clean Styles for Flight
+            dimLayer.classList.remove('hero-layer', 'hero-dim');
+            // Remove fixed pos styles so it can be FLIPped back to grid flow
+            gsap.set(dimLayer, { clearProps: "all" });
+
+            // 6. Execute FLIP
             Flip.from(state, {
-                duration: 1.2, // Slower: 0.6 -> 1.2
+                duration: 1.2,
                 ease: "power3.inOut",
-                absolute: true,
-                zIndex: 9999,
-                props: "filter",
+                absolute: true, // Keep it absolute during flight
+                zIndex: 10001, // Ensure image is above card
+                onStart: () => {
+                    // Parallel: Restore visual style (Un-dim, Un-blur)
+                    gsap.fromTo(dimLayer,
+                        { filter: "blur(4px)", opacity: 0.3 },
+                        { filter: "blur(0px)", opacity: 1, duration: 1.2, ease: "power3.inOut" }
+                    );
+                },
                 onComplete: () => {
-                    console.log("Flip animation complete");
-                    // REMOVED: if (projectsSection) projectsSection.style.zIndex = "";
+                    // 7. Final Cleanup
+                    detailsOverlay.style.display = "none";
 
-                    if (originalCard) {
-                        originalCard.style.zIndex = "";
-                        originalCard.style.overflow = "hidden";
-                        originalCard.style.height = "";
+                    // Reset Grid Card Info
+                    const cardInfo = originalCard.querySelector('.card-info');
+                    if (cardInfo) gsap.to(cardInfo, { opacity: 1, y: 0, duration: 0.5 });
 
-                        // Fix Text Animation: Ensure element is found and reset
-                        const cardInfo = originalCard.querySelector('.card-info');
-                        if (cardInfo) {
-                            console.log("Animate card info in", cardInfo);
-                            // Ensure it's visible but transparent first if needed?
-                            // It was set to opacity: 0 in openProject.
-                            gsap.to(cardInfo, {
-                                opacity: 1,
-                                y: 0,
-                                duration: 1.5, // Slower text flying up: 0.6 -> 1.5
-                                ease: "power2.out",
-                                clearProps: "transform" // Clean up after
-                            });
-                        } else {
-                            console.error("Card info not found for", openedCardId);
-                        }
-                    }
+                    // RESTORE OVERFLOW
+                    originalCard.style.overflow = "";
+                    originalCard.style.zIndex = "";
+
+                    // Ensure clean element state
+                    dimLayer.style.removeProperty('filter');
+                    dimLayer.style.removeProperty('opacity');
+                    dimLayer.style.removeProperty('transform');
+                    dimLayer.style.removeProperty('z-index');
+                    dimLayer.style.removeProperty('position');
+                    dimLayer.style.removeProperty('width');
+                    dimLayer.style.removeProperty('height');
+
                     activeCardImage = null;
                     openedCardId = null;
                 }
             });
+        }
+
+        // --- LIGHTBOX LOGIC ---
+        let activeLightboxImg = null;
+
+        function openLightbox(cardElement) {
+            const img = cardElement.querySelector('img');
+            if (!img) return;
+
+            const lightbox = document.getElementById('lightbox');
+            activeLightboxImg = img;
+
+            // Create a clone for the lightbox
+            const lbImg = img.cloneNode();
+
+            const state = Flip.getState(img);
+
+            lightbox.innerHTML = '';
+            lightbox.appendChild(lbImg);
+            lightbox.style.display = 'flex';
+
+            Flip.from(state, {
+                targets: lbImg,
+                duration: 0.6,
+                ease: "power3.inOut",
+                scale: true
+            });
+        }
+
+        function closeLightbox() {
+            const lightbox = document.getElementById('lightbox');
+            const lbImg = lightbox.querySelector('img');
+
+            if (activeLightboxImg && lbImg) {
+                const state = Flip.getState(activeLightboxImg);
+
+                Flip.to(state, {
+                    targets: lbImg,
+                    duration: 0.5,
+                    ease: "power3.inOut",
+                    scale: true,
+                    onComplete: () => {
+                        lightbox.style.display = 'none';
+                        lightbox.innerHTML = '';
+                        activeLightboxImg = null;
+                    }
+                });
+            } else {
+                lightbox.style.display = 'none';
+            }
         }
 
         // --- Photography Functions Removed ---
