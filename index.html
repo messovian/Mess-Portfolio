@@ -1880,9 +1880,9 @@
                 }
 
                 // 4. LERP: Ultra Slow "Air-like" smoothness
-                // Reduced factor from 0.05 to 0.015
-                p.pushX += (targetPushX - p.pushX) * 0.015;
-                p.pushY += (targetPushY - p.pushY) * 0.015;
+                // Reduced factor from 0.05 to 0.004
+                p.pushX += (targetPushX - p.pushX) * 0.004;
+                p.pushY += (targetPushY - p.pushY) * 0.004;
 
                 // 5. Apply
                 gsap.set(p.particle, { x: p.pushX, y: p.pushY });
