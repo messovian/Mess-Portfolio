@@ -1416,8 +1416,7 @@
                 duration: 1,
                 ease: "power3.inOut",
                 scale: true,
-                absolute: true, // FIX: Prevent layout jumps on mobile
-                zIndex: 10006   // FIX: Ensure it's on top
+                simple: true // FIX: Use simple transforms to avoid 3D flipping glitches on mobile
             });
         }
 
