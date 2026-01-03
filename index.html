@@ -1442,6 +1442,9 @@
             lightbox.appendChild(lbImg);
             lightbox.style.display = 'flex';
 
+            // FIX: Force browser reflow so Flip can measure the destination correctly
+            void lightbox.offsetWidth;
+
             // FIX: Start Transparent & Animate BG
             gsap.set(lightbox, { backgroundColor: "rgba(0,0,0,0)" });
             gsap.to(lightbox, { backgroundColor: "rgba(0,0,0,0.95)", duration: 1, ease: "power2.out" });
@@ -1449,13 +1452,14 @@
             Flip.from(state, {
                 targets: lbImg,
                 duration: 1,
-                absolute: true, // FIX: Out of flow to prevent layout folding
-                spin: false,    // FIX: No 3D rotation artifacts
+                absolute: true, // FIX: Out of flow to prevent folding
+                zIndex: 11000,  // FIX: Ensure visible above everything during flight
+                spin: false,    // FIX: No rotation artifacts
                 ease: "power3.inOut",
                 scale: true,
-                onComplete: () => {
-                    // Reset to normal flow after animation if needed, 
-                    // generally absolute is fine for lightbox but safety check:
+                onStart: () => {
+                    // Safety: Ensure it's visible at start
+                    gsap.set(lbImg, { opacity: 1, visibility: 'visible' });
                 }
             });
         }
