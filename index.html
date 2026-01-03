@@ -1218,17 +1218,19 @@
                     );
                 },
                 onComplete: () => {
-                    // 5. Create Flashlight Layer (Bright)
-                    const layerBright = img.cloneNode();
-                    layerBright.className = 'hero-layer hero-bright';
-                    layerBright.classList.remove('hero-dim');
-                    // Reset filters on the new clone so it's bright
-                    gsap.set(layerBright, { filter: "contrast(1.1) brightness(1.1)", opacity: 0 });
+                    // 5. Create Flashlight Layer (Bright) - DESKTOP ONLY
+                    if (window.innerWidth > 768) {
+                        const layerBright = img.cloneNode();
+                        layerBright.className = 'hero-layer hero-bright';
+                        layerBright.classList.remove('hero-dim');
+                        // Reset filters on the new clone so it's bright
+                        gsap.set(layerBright, { filter: "contrast(1.1) brightness(1.1)", opacity: 0 });
 
-                    detailsHero.appendChild(layerBright);
+                        detailsHero.appendChild(layerBright);
 
-                    // Fade it in
-                    gsap.to(layerBright, { opacity: 1, duration: 1.0 });
+                        // Fade it in
+                        gsap.to(layerBright, { opacity: 1, duration: 1.0 });
+                    }
 
                     // Show Content
                     gsap.to([detailsContent, closeBtn], { opacity: 1, duration: 1.0 });
@@ -1413,7 +1415,9 @@
                 targets: lbImg,
                 duration: 1,
                 ease: "power3.inOut",
-                scale: true
+                scale: true,
+                absolute: true, // FIX: Prevent layout jumps on mobile
+                zIndex: 10006   // FIX: Ensure it's on top
             });
         }
 
