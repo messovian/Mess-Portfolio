@@ -148,28 +148,6 @@
             transition: width 0.3s, height 0.3s;
         }
 
-        /* --- Mobile Project Glow --- */
-        .mobile-project-glow {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 40vh;
-            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), transparent);
-            pointer-events: none;
-            z-index: 9999;
-            opacity: 0;
-            /* Hidden by default */
-            transition: opacity 1s ease;
-            display: none;
-        }
-
-        @media (max-width: 768px) {
-            .mobile-project-glow {
-                display: block;
-            }
-        }
-
         .cursor.active {
             width: 80px;
             height: 80px;
@@ -871,7 +849,6 @@
 <body>
 
     <div class="animated-bg"></div>
-    <div class="mobile-project-glow"></div>
     <div class="mouse-glow"></div>
     <div class="cursor"></div>
     <div class="cursor-tooltip" id="cursor-tooltip"></div>
@@ -1241,25 +1218,17 @@
                     );
                 },
                 onComplete: () => {
-                    // 5. Create Flashlight Layer (Bright) - DESKTOP ONLY
-                    if (window.innerWidth > 768) {
-                        const layerBright = img.cloneNode();
-                        layerBright.className = 'hero-layer hero-bright';
-                        layerBright.classList.remove('hero-dim');
-                        // Reset filters on the new clone so it's bright
-                        gsap.set(layerBright, { filter: "contrast(1.1) brightness(1.1)", opacity: 0 });
+                    // 5. Create Flashlight Layer (Bright)
+                    const layerBright = img.cloneNode();
+                    layerBright.className = 'hero-layer hero-bright';
+                    layerBright.classList.remove('hero-dim');
+                    // Reset filters on the new clone so it's bright
+                    gsap.set(layerBright, { filter: "contrast(1.1) brightness(1.1)", opacity: 0 });
 
-                        detailsHero.appendChild(layerBright);
+                    detailsHero.appendChild(layerBright);
 
-                        // Fade it in
-                        gsap.to(layerBright, { opacity: 1, duration: 1.0 });
-                    }
-
-                    // Mobile Light Source (Photography Only)
-                    const mobileGlow = document.querySelector('.mobile-project-glow');
-                    if (window.innerWidth <= 768 && title === 'PHOTOGRAPHY' && mobileGlow) {
-                        gsap.to(mobileGlow, { opacity: 1, duration: 1.0 });
-                    }
+                    // Fade it in
+                    gsap.to(layerBright, { opacity: 1, duration: 1.0 });
 
                     // Show Content
                     gsap.to([detailsContent, closeBtn], { opacity: 1, duration: 1.0 });
@@ -1331,12 +1300,6 @@
             const brightLayer = detailsHero.querySelector('.hero-bright');
             if (brightLayer) {
                 gsap.to(brightLayer, { opacity: 0, duration: 0.5 });
-            }
-
-            // Hide Mobile Glow
-            const mobileGlow = document.querySelector('.mobile-project-glow');
-            if (mobileGlow) {
-                gsap.to(mobileGlow, { opacity: 0, duration: 0.5 });
             }
 
             // 2. Animate Background to Transparent (Parallel)
@@ -1431,39 +1394,26 @@
 
             const state = Flip.getState(img);
 
-            // FIX COMPLETE REFACTOR: Move ACTUAL node instead of cloning to prevent mobile decoding delay/pop-in
-            const parent = img.parentNode;
-            const placeholder = document.createElement('div');
-            placeholder.style.width = img.offsetWidth + 'px';
-            placeholder.style.height = img.offsetHeight + 'px';
-            placeholder.className = 'lightbox-placeholder'; // Marker
+            // Create a clone for the lightbox
+            const lbImg = img.cloneNode();
+            lbImg.dataset.flipId = flipId; // Match ID
 
-            // Swap
-            parent.insertBefore(placeholder, img);
-            lightbox.appendChild(img);
+            // FIX: Prevent lazy loading glitch on clone
+            lbImg.loading = "eager";
 
+            lightbox.innerHTML = '';
+            lightbox.appendChild(lbImg);
             lightbox.style.display = 'flex';
-
-            // FIX: Force browser reflow
-            void lightbox.offsetWidth;
 
             // FIX: Start Transparent & Animate BG
             gsap.set(lightbox, { backgroundColor: "rgba(0,0,0,0)" });
             gsap.to(lightbox, { backgroundColor: "rgba(0,0,0,0.95)", duration: 1, ease: "power2.out" });
 
             Flip.from(state, {
-                targets: img, // Animate ACTUAL image
+                targets: lbImg,
                 duration: 1,
-                absolute: true,
-                zIndex: 11000,
-                spin: false,
                 ease: "power3.inOut",
-                scale: true,
-                onStart: () => {
-                    gsap.set(img, { opacity: 1, visibility: 'visible', width: '', height: '', maxWidth: '95%', maxHeight: '95%' });
-                    // Reset sizing constraints that might be stuck from grid state, let max-width/height logic of lightbox take over?
-                    // Actually Flip handles sizing. We just need to ensure css doesn't conflict.
-                }
+                scale: true
             });
         }
 
@@ -1476,55 +1426,24 @@
                 gsap.to(lightbox, { backgroundColor: "rgba(0,0,0,0)", duration: 1, ease: "power2.out" });
 
                 // FIX: Use Flip.fit to fly back to original
-                gsap.to(lbImg, { filter: "brightness(0.6)", duration: 1, ease: "power3.inOut" });
+                // AND animate brightness back to 0.6 to match grid state
+                gsap.fromTo(lbImg, { filter: "brightness(1)" }, { filter: "brightness(0.8)", duration: 1, ease: "power3.inOut" });
 
-                // Find placeholder
-                const placeholder = document.querySelector('.lightbox-placeholder');
+                Flip.fit(lbImg, activeLightboxImg, {
+                    scale: true,
+                    duration: 1,
+                    ease: "power3.inOut",
+                    onComplete: () => {
+                        lightbox.style.display = 'none';
+                        lightbox.innerHTML = '';
 
-                // If placeholder exists, we use it as state target, often safer
-                // But Flip.fit works with state object too. Let's use the placeholder element as target if possible for accuracy?
-                // Actually, let's just Flip back to original state if we can.
-                // But simplified: Just move it back with Flip.
+                        // Clean up ID
+                        if (activeLightboxImg) delete activeLightboxImg.dataset.flipId;
 
-                // We need to capture state of the image in the lightbox
-                const state = Flip.getState(lbImg);
-
-                // Check if placeholder is still there (it should be)
-                if (placeholder && placeholder.parentNode) {
-                    // Move image back to DOM
-                    placeholder.parentNode.insertBefore(lbImg, placeholder);
-                    placeholder.parentNode.removeChild(placeholder);
-
-                    // Reset styles that might interfere
-                    gsap.set(lbImg, { clearProps: "all" }); // Clear lightbox styles
-
-                    // Re-apply grid styles if needed implies we just let css take over, 
-                    // but we need Flip to animate it from Lightbox pos to Grid pos.
-
-                    Flip.from(state, {
-                        targets: lbImg,
-                        duration: 1,
-                        ease: "power3.inOut",
-                        scale: true,
-                        absolute: true, // Keep absolute during flight
-                        zIndex: 11000,
-                        spin: false,
-                        onComplete: () => {
-                            lightbox.style.display = 'none';
-                            lightbox.innerHTML = '';
-
-                            // Cleanup
-                            gsap.set(lbImg, { clearProps: "all" });
-                            if (activeLightboxImg) delete activeLightboxImg.dataset.flipId;
-                            activeLightboxImg = null;
-                            lightbox.style.backgroundColor = "";
-                        }
-                    });
-                } else {
-                    // Fallback if placeholder missing
-                    lightbox.style.display = 'none';
-                    lightbox.innerHTML = '';
-                }
+                        activeLightboxImg = null;
+                        lightbox.style.backgroundColor = "";
+                    }
+                });
             } else {
                 lightbox.style.display = 'none';
             }
