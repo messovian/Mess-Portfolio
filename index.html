@@ -1431,18 +1431,20 @@
 
             const state = Flip.getState(img);
 
-            // Create a clone for the lightbox
-            const lbImg = img.cloneNode();
-            lbImg.dataset.flipId = flipId; // Match ID
+            // FIX COMPLETE REFACTOR: Move ACTUAL node instead of cloning to prevent mobile decoding delay/pop-in
+            const parent = img.parentNode;
+            const placeholder = document.createElement('div');
+            placeholder.style.width = img.offsetWidth + 'px';
+            placeholder.style.height = img.offsetHeight + 'px';
+            placeholder.className = 'lightbox-placeholder'; // Marker
 
-            // FIX: Prevent lazy loading glitch on clone
-            lbImg.loading = "eager";
+            // Swap
+            parent.insertBefore(placeholder, img);
+            lightbox.appendChild(img);
 
-            lightbox.innerHTML = '';
-            lightbox.appendChild(lbImg);
             lightbox.style.display = 'flex';
 
-            // FIX: Force browser reflow so Flip can measure the destination correctly
+            // FIX: Force browser reflow
             void lightbox.offsetWidth;
 
             // FIX: Start Transparent & Animate BG
@@ -1450,16 +1452,17 @@
             gsap.to(lightbox, { backgroundColor: "rgba(0,0,0,0.95)", duration: 1, ease: "power2.out" });
 
             Flip.from(state, {
-                targets: lbImg,
+                targets: img, // Animate ACTUAL image
                 duration: 1,
-                absolute: true, // FIX: Out of flow to prevent folding
-                zIndex: 11000,  // FIX: Ensure visible above everything during flight
-                spin: false,    // FIX: No rotation artifacts
+                absolute: true,
+                zIndex: 11000,
+                spin: false,
                 ease: "power3.inOut",
                 scale: true,
                 onStart: () => {
-                    // Safety: Ensure it's visible at start
-                    gsap.set(lbImg, { opacity: 1, visibility: 'visible' });
+                    gsap.set(img, { opacity: 1, visibility: 'visible', width: '', height: '', maxWidth: '95%', maxHeight: '95%' });
+                    // Reset sizing constraints that might be stuck from grid state, let max-width/height logic of lightbox take over?
+                    // Actually Flip handles sizing. We just need to ensure css doesn't conflict.
                 }
             });
         }
@@ -1473,24 +1476,55 @@
                 gsap.to(lightbox, { backgroundColor: "rgba(0,0,0,0)", duration: 1, ease: "power2.out" });
 
                 // FIX: Use Flip.fit to fly back to original
-                // AND animate brightness back to 0.6 to match grid state
-                gsap.fromTo(lbImg, { filter: "brightness(1)" }, { filter: "brightness(0.8)", duration: 1, ease: "power3.inOut" });
+                gsap.to(lbImg, { filter: "brightness(0.6)", duration: 1, ease: "power3.inOut" });
 
-                Flip.fit(lbImg, activeLightboxImg, {
-                    scale: true,
-                    duration: 1,
-                    ease: "power3.inOut",
-                    onComplete: () => {
-                        lightbox.style.display = 'none';
-                        lightbox.innerHTML = '';
+                // Find placeholder
+                const placeholder = document.querySelector('.lightbox-placeholder');
 
-                        // Clean up ID
-                        if (activeLightboxImg) delete activeLightboxImg.dataset.flipId;
+                // If placeholder exists, we use it as state target, often safer
+                // But Flip.fit works with state object too. Let's use the placeholder element as target if possible for accuracy?
+                // Actually, let's just Flip back to original state if we can.
+                // But simplified: Just move it back with Flip.
 
-                        activeLightboxImg = null;
-                        lightbox.style.backgroundColor = "";
-                    }
-                });
+                // We need to capture state of the image in the lightbox
+                const state = Flip.getState(lbImg);
+
+                // Check if placeholder is still there (it should be)
+                if (placeholder && placeholder.parentNode) {
+                    // Move image back to DOM
+                    placeholder.parentNode.insertBefore(lbImg, placeholder);
+                    placeholder.parentNode.removeChild(placeholder);
+
+                    // Reset styles that might interfere
+                    gsap.set(lbImg, { clearProps: "all" }); // Clear lightbox styles
+
+                    // Re-apply grid styles if needed implies we just let css take over, 
+                    // but we need Flip to animate it from Lightbox pos to Grid pos.
+
+                    Flip.from(state, {
+                        targets: lbImg,
+                        duration: 1,
+                        ease: "power3.inOut",
+                        scale: true,
+                        absolute: true, // Keep absolute during flight
+                        zIndex: 11000,
+                        spin: false,
+                        onComplete: () => {
+                            lightbox.style.display = 'none';
+                            lightbox.innerHTML = '';
+
+                            // Cleanup
+                            gsap.set(lbImg, { clearProps: "all" });
+                            if (activeLightboxImg) delete activeLightboxImg.dataset.flipId;
+                            activeLightboxImg = null;
+                            lightbox.style.backgroundColor = "";
+                        }
+                    });
+                } else {
+                    // Fallback if placeholder missing
+                    lightbox.style.display = 'none';
+                    lightbox.innerHTML = '';
+                }
             } else {
                 lightbox.style.display = 'none';
             }
