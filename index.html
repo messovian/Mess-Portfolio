@@ -1411,6 +1411,9 @@
             gsap.set(lightbox, { backgroundColor: "rgba(0,0,0,0)" });
             gsap.to(lightbox, { backgroundColor: "rgba(0,0,0,0.95)", duration: 1, ease: "power2.out" });
 
+            // FIX: Hide original image to prevent duplication
+            gsap.set(img, { opacity: 0 });
+
             Flip.from(state, {
                 targets: lbImg,
                 duration: 1,
@@ -1439,6 +1442,9 @@
                     onComplete: () => {
                         lightbox.style.display = 'none';
                         lightbox.innerHTML = '';
+
+                        // FIX: Restore original image
+                        if (activeLightboxImg) gsap.set(activeLightboxImg, { opacity: 1 });
 
                         // Clean up ID
                         if (activeLightboxImg) delete activeLightboxImg.dataset.flipId;
