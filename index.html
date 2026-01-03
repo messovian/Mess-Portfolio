@@ -148,6 +148,28 @@
             transition: width 0.3s, height 0.3s;
         }
 
+        /* --- Mobile Project Glow --- */
+        .mobile-project-glow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40vh;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), transparent);
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0;
+            /* Hidden by default */
+            transition: opacity 1s ease;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-project-glow {
+                display: block;
+            }
+        }
+
         .cursor.active {
             width: 80px;
             height: 80px;
@@ -849,6 +871,7 @@
 <body>
 
     <div class="animated-bg"></div>
+    <div class="mobile-project-glow"></div>
     <div class="mouse-glow"></div>
     <div class="cursor"></div>
     <div class="cursor-tooltip" id="cursor-tooltip"></div>
@@ -1232,6 +1255,12 @@
                         gsap.to(layerBright, { opacity: 1, duration: 1.0 });
                     }
 
+                    // Mobile Light Source (Photography Only)
+                    const mobileGlow = document.querySelector('.mobile-project-glow');
+                    if (window.innerWidth <= 768 && title === 'PHOTOGRAPHY' && mobileGlow) {
+                        gsap.to(mobileGlow, { opacity: 1, duration: 1.0 });
+                    }
+
                     // Show Content
                     gsap.to([detailsContent, closeBtn], { opacity: 1, duration: 1.0 });
                     closeBtn.style.pointerEvents = "all";
@@ -1302,6 +1331,12 @@
             const brightLayer = detailsHero.querySelector('.hero-bright');
             if (brightLayer) {
                 gsap.to(brightLayer, { opacity: 0, duration: 0.5 });
+            }
+
+            // Hide Mobile Glow
+            const mobileGlow = document.querySelector('.mobile-project-glow');
+            if (mobileGlow) {
+                gsap.to(mobileGlow, { opacity: 0, duration: 0.5 });
             }
 
             // 2. Animate Background to Transparent (Parallel)
@@ -1414,9 +1449,14 @@
             Flip.from(state, {
                 targets: lbImg,
                 duration: 1,
-                simple: true, // FIX: Prevent flipping artifacts on mobile
+                absolute: true, // FIX: Out of flow to prevent layout folding
+                spin: false,    // FIX: No 3D rotation artifacts
                 ease: "power3.inOut",
-                scale: true
+                scale: true,
+                onComplete: () => {
+                    // Reset to normal flow after animation if needed, 
+                    // generally absolute is fine for lightbox but safety check:
+                }
             });
         }
 
