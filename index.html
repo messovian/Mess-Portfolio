@@ -1754,8 +1754,143 @@
             });
         }
 
-        // Run Bokeh
-        initBokeh();
+
+
+        // --- NEW LOCALIZED PHYSICS BOKEH ---
+        const bokehState = {
+            particles: [],
+            mouseX: -1000,
+            mouseY: -1000
+        };
+
+        function initCinematicBokeh() {
+            const container = document.getElementById('bokeh-container');
+            if (!container) return;
+
+            // Track Mouse for Physics
+            window.addEventListener('mousemove', e => {
+                bokehState.mouseX = e.clientX;
+                bokehState.mouseY = e.clientY;
+            });
+
+            // Clean previous if any
+            container.innerHTML = '';
+
+            // Mobile Optimization: Less particles
+            const isMobile = window.innerWidth < 768;
+            const particleCount = isMobile ? 20 : 60;
+
+            for (let i = 0; i < particleCount; i++) {
+                // 1. Create Wrapper (The Wanderer)
+                const wrapper = document.createElement('div');
+                wrapper.classList.add('bokeh-wrapper');
+                // Center origin for easier math
+                gsap.set(wrapper, { position: 'absolute', left: 0, top: 0 });
+                container.appendChild(wrapper);
+
+                // 2. Create Particle (The Visual + Push Target)
+                const particle = document.createElement('div');
+                particle.classList.add('bokeh-particle');
+                wrapper.appendChild(particle);
+
+                // Initial Props
+                const size = gsap.utils.random(50, 350);
+
+                // Store State for Lerp
+                const pObj = {
+                    wrapper: wrapper,
+                    particle: particle,
+                    // Physics State
+                    pushX: 0,
+                    pushY: 0,
+                    size: size
+                };
+                bokehState.particles.push(pObj);
+
+                // Style
+                gsap.set(particle, {
+                    width: size,
+                    height: size,
+                    // Center the particle within the wrapper so wrapper x/y is center
+                    xPercent: -50,
+                    yPercent: -50,
+                    opacity: gsap.utils.random(0.1, 0.4),
+                    filter: `blur(${gsap.utils.random(2, 10)}px)`,
+                    backgroundColor: i % 3 === 0 ? '#ffb7b2' : '#ffa6c9'
+                });
+
+                // Init Wander (random start)
+                const startX = gsap.utils.random(0, window.innerWidth);
+                const startY = gsap.utils.random(0, window.innerHeight);
+                gsap.set(wrapper, { x: startX, y: startY });
+
+                animateCinematicWander(wrapper);
+            }
+
+            // Start Physics Loop
+            gsap.ticker.add(updateCinematicPhysics);
+        }
+
+        function animateCinematicWander(wrapper) {
+            const duration = gsap.utils.random(20, 60);
+            const x = gsap.utils.random(-100, window.innerWidth + 100);
+            const y = gsap.utils.random(-100, window.innerHeight + 100);
+
+            gsap.to(wrapper, {
+                x: x,
+                y: y,
+                duration: duration,
+                ease: "sine.inOut",
+                onComplete: () => animateCinematicWander(wrapper)
+            });
+        }
+
+        function updateCinematicPhysics() {
+            // Mobile Optimization: Check if mouse has moved or is relevant
+            // We'll run it always for smoothness on desktop
+
+            bokehState.particles.forEach(p => {
+                // 1. Get Base Position
+                const wx = gsap.getProperty(p.wrapper, "x");
+                const wy = gsap.getProperty(p.wrapper, "y");
+
+                // 2. Distance to Mouse
+                const dx = wx - bokehState.mouseX;
+                const dy = wy - bokehState.mouseY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                // 3. Local Repulsion (Glow Radius)
+                const radius = 400; // Increased radius for softer gradient
+                let targetPushX = 0;
+                let targetPushY = 0;
+
+                if (dist < radius) {
+                    const force = (radius - dist) / radius; // 0 to 1
+
+                    // FIX: Ensure it pushes AWAY. 
+                    // Vector (dx, dy) points FROM mouse TO particle (because wx - mouseX).
+                    // So positive direction IS away.
+                    // Previous code had -(dx/dist) which pulled INTO mouse.
+
+                    const strength = 150; // Pixels to push
+
+                    // Push Away (Positive vector)
+                    targetPushX = (dx / dist) * force * strength;
+                    targetPushY = (dy / dist) * force * strength;
+                }
+
+                // 4. LERP: Ultra Slow "Air-like" smoothness
+                // Reduced factor from 0.05 to 0.015
+                p.pushX += (targetPushX - p.pushX) * 0.015;
+                p.pushY += (targetPushY - p.pushY) * 0.015;
+
+                // 5. Apply
+                gsap.set(p.particle, { x: p.pushX, y: p.pushY });
+            });
+        }
+
+        // Initialize
+        initCinematicBokeh();
 
         // Run after load
         window.addEventListener('load', makeTextInteractive);
