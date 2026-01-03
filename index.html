@@ -850,6 +850,26 @@
                 column-count: 1;
             }
         }
+
+        /* --- BOKEH EFFECT --- */
+        .bokeh-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bokeh-particle {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 166, 201, 0.6) 0%, rgba(255, 166, 201, 0) 70%);
+            mix-blend-mode: screen;
+            will-change: transform, opacity;
+        }
     </style>
 </head>
 
@@ -857,6 +877,7 @@
 
     <div class="animated-bg"></div>
     <div class="mouse-glow"></div>
+    <div id="bokeh-container" class="bokeh-container"></div>
     <div class="cursor"></div>
     <div class="cursor-tooltip" id="cursor-tooltip"></div>
 
@@ -1570,7 +1591,6 @@
         }
 
 
-        // 7. Interactive Text Wrapping
         function makeTextInteractive() {
             // Select elements to process. Be careful not to break structural divs or scripts.
             // Targeting headings, paragraphs, and spans inside sections.
@@ -1601,6 +1621,141 @@
                 }
             });
         }
+
+        // --- CINEMATIC BOKEH GEN & PARALLAX ---
+        function initBokeh() {
+            const container = document.getElementById('bokeh-container');
+            if (!container) return;
+
+            // 1. Create Depth Layers
+            const layerFar = document.createElement('div');
+            const layerMid = document.createElement('div');
+            const layerNear = document.createElement('div');
+
+            [layerFar, layerMid, layerNear].forEach(layer => {
+                layer.style.position = 'absolute';
+                layer.style.top = '0';
+                layer.style.left = '0';
+                layer.style.width = '100%';
+                layer.style.height = '100%';
+                layer.style.pointerEvents = 'none';
+                container.appendChild(layer);
+            });
+
+            // 2. Generate Particles per Layer
+            // Far: More particles, smaller, slower, less movement
+            createParticles(layerFar, 35, { minSize: 50, maxSize: 150, minOp: 0.1, maxOp: 0.3, durMin: 40, durMax: 70 });
+
+            // Mid: Average
+            createParticles(layerMid, 20, { minSize: 150, maxSize: 250, minOp: 0.2, maxOp: 0.4, durMin: 30, durMax: 50 });
+
+            // Near: Fewer, big, faster, more movement
+            createParticles(layerNear, 10, { minSize: 250, maxSize: 400, minOp: 0.1, maxOp: 0.25, durMin: 20, durMax: 40 });
+
+            // 3. Init Mouse Parallax
+            initParallax(layerFar, layerMid, layerNear);
+        }
+
+        function createParticles(layer, count, config) {
+            for (let i = 0; i < count; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('bokeh-particle');
+                layer.appendChild(particle);
+
+                const size = gsap.utils.random(config.minSize, config.maxSize);
+
+                gsap.set(particle, {
+                    x: gsap.utils.random(0, window.innerWidth),
+                    y: gsap.utils.random(0, window.innerHeight),
+                    width: size,
+                    height: size,
+                    opacity: gsap.utils.random(config.minOp, config.maxOp),
+                    filter: `blur(${gsap.utils.random(2, 10)}px)`,
+                    backgroundColor: i % 3 === 0 ? '#ffb7b2' : '#ffa6c9'
+                });
+
+                // Independent Wander Animation
+                animateBokeh(particle, config.durMin, config.durMax);
+            }
+        }
+
+        function animateBokeh(particle, minDur, maxDur) {
+            const duration = gsap.utils.random(minDur, maxDur);
+            const x = gsap.utils.random(-200, window.innerWidth + 200);
+            const y = gsap.utils.random(-200, window.innerHeight + 200);
+            const scale = gsap.utils.random(0.8, 1.2);
+            const opacity = gsap.utils.random(0.1, 0.4); // Subtle pulse
+
+            gsap.to(particle, {
+                x: x,
+                y: y,
+                scale: scale,
+                opacity: opacity,
+                duration: duration,
+                ease: "sine.inOut",
+                onComplete: () => animateBokeh(particle, minDur, maxDur)
+            });
+        }
+
+        function initParallax(far, mid, near) {
+            // Safety Checks
+            if (window.matchMedia("(hover: none)").matches) return; // Touch device
+            if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+            // GSAP QuickSetters aren't needed for just 3 elements, standard to() is fine for smoothing
+
+            let isScrolling = false;
+            let scrollTimer;
+
+            // Hook into Lenis or Window scroll to pause effect
+            // Assuming 'lenis' is available globally from earlier script
+            if (typeof lenis !== 'undefined') {
+                lenis.on('scroll', () => {
+                    isScrolling = true;
+                    clearTimeout(scrollTimer);
+                    scrollTimer = setTimeout(() => isScrolling = false, 150);
+                });
+            }
+
+            window.addEventListener('mousemove', (e) => {
+                if (isScrolling) return;
+
+                // Normalized mouse position (-1 to 1) from center
+                const xNorm = (e.clientX / window.innerWidth) * 2 - 1;
+                const yNorm = (e.clientY / window.innerHeight) * 2 - 1;
+
+                // Inverse Movement (Drift away)
+                // Far: Moves least (5px)
+                gsap.to(far, {
+                    x: -10 * xNorm,
+                    y: -10 * yNorm,
+                    duration: 2,
+                    ease: "power2.out",
+                    overwrite: "auto"
+                });
+
+                // Mid: Moves moderate (15px)
+                gsap.to(mid, {
+                    x: -25 * xNorm,
+                    y: -25 * yNorm,
+                    duration: 2,
+                    ease: "power2.out",
+                    overwrite: "auto"
+                });
+
+                // Near: Moves most (40px) - slightly boosted for visible effect but soft
+                gsap.to(near, {
+                    x: -40 * xNorm,
+                    y: -40 * yNorm,
+                    duration: 2,
+                    ease: "power2.out",
+                    overwrite: "auto"
+                });
+            });
+        }
+
+        // Run Bokeh
+        initBokeh();
 
         // Run after load
         window.addEventListener('load', makeTextInteractive);
