@@ -494,6 +494,13 @@
             /* Double check */
         }
 
+        @media (max-width: 768px) {
+            .hero-bright {
+                -webkit-mask-image: radial-gradient(circle 80vh at 50% 0%, black 0%, transparent 100%) !important;
+                mask-image: radial-gradient(circle 80vh at 50% 0%, black 0%, transparent 100%) !important;
+            }
+        }
+
         /* Updated Detail Content Layout */
         .details-content {
             position: relative;
@@ -1218,19 +1225,17 @@
                     );
                 },
                 onComplete: () => {
-                    // 5. Create Flashlight Layer (Bright) - DESKTOP ONLY
-                    if (window.innerWidth > 768) {
-                        const layerBright = img.cloneNode();
-                        layerBright.className = 'hero-layer hero-bright';
-                        layerBright.classList.remove('hero-dim');
-                        // Reset filters on the new clone so it's bright
-                        gsap.set(layerBright, { filter: "contrast(1.1) brightness(1.1)", opacity: 0 });
+                    // 5. Create Flashlight Layer (Bright)
+                    const layerBright = img.cloneNode();
+                    layerBright.className = 'hero-layer hero-bright';
+                    layerBright.classList.remove('hero-dim');
+                    // Reset filters on the new clone so it's bright
+                    gsap.set(layerBright, { filter: "contrast(1.1) brightness(1.1)", opacity: 0 });
 
-                        detailsHero.appendChild(layerBright);
+                    detailsHero.appendChild(layerBright);
 
-                        // Fade it in
-                        gsap.to(layerBright, { opacity: 1, duration: 1.0 });
-                    }
+                    // Fade it in
+                    gsap.to(layerBright, { opacity: 1, duration: 1.0 });
 
                     // Show Content
                     gsap.to([detailsContent, closeBtn], { opacity: 1, duration: 1.0 });
@@ -1411,15 +1416,11 @@
             gsap.set(lightbox, { backgroundColor: "rgba(0,0,0,0)" });
             gsap.to(lightbox, { backgroundColor: "rgba(0,0,0,0.95)", duration: 1, ease: "power2.out" });
 
-            // FIX: Hide original image to prevent duplication
-            gsap.set(img, { opacity: 0 });
-
             Flip.from(state, {
                 targets: lbImg,
                 duration: 1,
                 ease: "power3.inOut",
-                scale: true,
-                simple: true // FIX: Use simple transforms to avoid 3D flipping glitches on mobile
+                scale: true
             });
         }
 
@@ -1442,9 +1443,6 @@
                     onComplete: () => {
                         lightbox.style.display = 'none';
                         lightbox.innerHTML = '';
-
-                        // FIX: Restore original image
-                        if (activeLightboxImg) gsap.set(activeLightboxImg, { opacity: 1 });
 
                         // Clean up ID
                         if (activeLightboxImg) delete activeLightboxImg.dataset.flipId;
