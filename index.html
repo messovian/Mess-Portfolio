@@ -1763,87 +1763,11 @@
             mouseY: -1000
         };
 
-        function initCinematicBokeh() {
-            const container = document.getElementById('bokeh-container');
-            if (!container) return;
 
-            // Track Mouse for Physics
-            window.addEventListener('mousemove', e => {
-                bokehState.mouseX = e.clientX;
-                bokehState.mouseY = e.clientY;
-            });
 
-            // Clean previous if any
-            container.innerHTML = '';
 
-            // Mobile Optimization: Less particles
-            const isMobile = window.innerWidth < 768;
-            const particleCount = isMobile ? 20 : 60;
 
-            for (let i = 0; i < particleCount; i++) {
-                // 1. Create Wrapper (The Wanderer)
-                const wrapper = document.createElement('div');
-                wrapper.classList.add('bokeh-wrapper');
-                // Center origin for easier math
-                gsap.set(wrapper, { position: 'absolute', left: 0, top: 0 });
-                container.appendChild(wrapper);
 
-                // 2. Create Particle (The Visual + Push Target)
-                const particle = document.createElement('div');
-                particle.classList.add('bokeh-particle');
-                wrapper.appendChild(particle);
-
-                // Initial Props
-                const size = gsap.utils.random(50, 350);
-
-                // Store State for Lerp
-                const pObj = {
-                    wrapper: wrapper,
-                    particle: particle,
-                    // Physics State
-                    pushX: 0,
-                    pushY: 0,
-                    size: size
-                };
-                bokehState.particles.push(pObj);
-
-                // Style
-                gsap.set(particle, {
-                    width: size,
-                    height: size,
-                    // Center the particle within the wrapper so wrapper x/y is center
-                    xPercent: -50,
-                    yPercent: -50,
-                    opacity: gsap.utils.random(0.1, 0.4),
-                    filter: `blur(${gsap.utils.random(2, 10)}px)`,
-                    backgroundColor: i % 3 === 0 ? '#ffb7b2' : '#ffa6c9'
-                });
-
-                // Init Wander (random start)
-                const startX = gsap.utils.random(0, window.innerWidth);
-                const startY = gsap.utils.random(0, window.innerHeight);
-                gsap.set(wrapper, { x: startX, y: startY });
-
-                animateCinematicWander(wrapper);
-            }
-
-            // Start Physics Loop
-            gsap.ticker.add(updateCinematicPhysics);
-        }
-
-        function animateCinematicWander(wrapper) {
-            const duration = gsap.utils.random(20, 60);
-            const x = gsap.utils.random(-100, window.innerWidth + 100);
-            const y = gsap.utils.random(-100, window.innerHeight + 100);
-
-            gsap.to(wrapper, {
-                x: x,
-                y: y,
-                duration: duration,
-                ease: "sine.inOut",
-                onComplete: () => animateCinematicWander(wrapper)
-            });
-        }
 
         function updateCinematicPhysics() {
             // Mobile Optimization: Check if mouse has moved or is relevant
@@ -1888,6 +1812,121 @@
                 gsap.set(p.particle, { x: p.pushX, y: p.pushY });
             });
         }
+
+        // --- NEW VELOCITY-BASED PHYSICS BOKEH ---
+        function initCinematicBokeh() {
+            const container = document.getElementById('bokeh-container');
+            if (!container) return;
+
+            // Track Mouse
+            window.addEventListener('mousemove', e => {
+                bokehState.mouseX = e.clientX;
+                bokehState.mouseY = e.clientY;
+            });
+
+            container.innerHTML = '';
+
+            // Device Check
+            const isMobile = window.innerWidth < 768;
+            const particleCount = isMobile ? 20 : 60;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('bokeh-particle');
+                container.appendChild(particle);
+
+                // Initial Random Props
+                const size = gsap.utils.random(50, 350);
+                const x = gsap.utils.random(0, window.innerWidth);
+                const y = gsap.utils.random(0, window.innerHeight);
+
+                // Style
+                gsap.set(particle, {
+                    width: size,
+                    height: size,
+                    xPercent: -50,
+                    yPercent: -50,
+                    x: x,
+                    y: y,
+                    opacity: gsap.utils.random(0.1, 0.4),
+                    filter: `blur(${gsap.utils.random(2, 10)}px)`,
+                    backgroundColor: i % 3 === 0 ? '#ffb7b2' : '#ffa6c9'
+                });
+
+                // Physics Object
+                bokehState.particles.push({
+                    element: particle,
+                    x: x,
+                    y: y,
+                    // Velocity (Super Slow wander)
+                    vx: gsap.utils.random(-0.05, 0.05),
+                    vy: gsap.utils.random(-0.05, 0.05),
+                    // Wander Target (Acceleration)
+                    wanderTheta: gsap.utils.random(0, Math.PI * 2),
+                    size: size
+                });
+            }
+
+            // Start Unified Loop
+            gsap.ticker.add(updateBokehVelocity);
+        }
+
+        function updateBokehVelocity() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const radius = 300; // Interaction Radius
+
+            bokehState.particles.forEach(p => {
+                // 1. WANDER FORCE (Smoothly change direction)
+                // Random walk angle
+                p.wanderTheta += gsap.utils.random(-0.05, 0.05);
+
+                // Apply small acceleration in that direction
+                const speedObj = 0.005;
+                p.vx += Math.cos(p.wanderTheta) * speedObj;
+                p.vy += Math.sin(p.wanderTheta) * speedObj;
+
+                // Friction (Damping) to prevent infinite acceleration
+                p.vx *= 0.96;
+                p.vy *= 0.96;
+
+                // 2. MOUSE REPULSION (Changes Velocity PERMANENTLY)
+                const dx = p.x - bokehState.mouseX;
+                const dy = p.y - bokehState.mouseY;
+                const distSq = dx * dx + dy * dy;
+
+                // Optimization: distSq check avoids Math.sqrt many times
+                if (distSq < radius * radius) {
+                    const dist = Math.sqrt(distSq);
+                    if (dist > 0) { // Avoid div/0
+                        const force = (radius - dist) / radius; // 0 to 1
+
+                        // Push Strength (acceleration amount)
+                        // This adds to velocity, permanently altering trajectory
+                        const pushStrength = 0.05;
+
+                        // Direction Normal * Force * Strength
+                        p.vx += (dx / dist) * force * pushStrength;
+                        p.vy += (dy / dist) * force * pushStrength;
+                    }
+                }
+
+                // 3. APPLY VELOCITY
+                p.x += p.vx;
+                p.y += p.vy;
+
+                // 4. SCREEN WRAPPING (Infinite Canvas)
+                const margin = p.size;
+                if (p.x > width + margin) p.x = -margin;
+                if (p.x < -margin) p.x = width + margin;
+                if (p.y > height + margin) p.y = -margin;
+                if (p.y < -margin) p.y = height + margin;
+
+                // 5. RENDER
+                gsap.set(p.element, { x: p.x, y: p.y });
+            });
+        }
+
 
         // Initialize
         initCinematicBokeh();
