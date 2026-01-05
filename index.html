@@ -142,7 +142,7 @@
             border: 1px solid var(--text-color);
             border-radius: 50%;
             pointer-events: none;
-            z-index: 9999;
+            z-index: 10010;
             transform: translate(-50%, -50%);
             mix-blend-mode: difference;
             transition: width 0.3s, height 0.3s;
@@ -606,7 +606,8 @@
             align-items: center;
             z-index: 10005;
             /* Highest */
-            cursor: zoom-out;
+            /* Highest */
+            cursor: none;
         }
 
         .lightbox img {
@@ -615,6 +616,7 @@
             object-fit: contain;
             border-radius: 4px;
             box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+            cursor: none;
         }
 
         /* --- SOCIALS SECTION (3x3 Grid) --- */
@@ -1494,6 +1496,18 @@
             lightbox.innerHTML = '';
             lightbox.appendChild(lbImg);
             lightbox.style.display = 'flex';
+
+            // Cursor Logic for Lightbox Image
+            if (!isMobile) {
+                lbImg.addEventListener('mouseenter', () => {
+                    const cursor = document.querySelector('.cursor');
+                    if (cursor) cursor.classList.add('active');
+                });
+                lbImg.addEventListener('mouseleave', () => {
+                    const cursor = document.querySelector('.cursor');
+                    if (cursor) cursor.classList.remove('active');
+                });
+            }
 
             if (isMobile) {
                 // LIGHTBOX OPEN ANIMATION (Mobile)
