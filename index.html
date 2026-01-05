@@ -1409,11 +1409,72 @@
         // --- LIGHTBOX LOGIC ---
         let activeLightboxImg = null;
 
+        // Mobile Gesture State
+        let lb_initialDist = 0;
+        let lb_currentScale = 1;
+        let lb_pinching = false;
+        let lb_pinchScale = 1;
+
+        function handleTouchStart(e) {
+            if (e.touches.length === 2) {
+                lb_pinching = true;
+                lb_initialDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+            }
+        }
+
+        function handleTouchMove(e) {
+            if (lb_pinching && e.touches.length === 2) {
+                e.preventDefault(); // Prevent page scroll while zooming
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+
+                // Calculate new scale
+                const scale = (dist / lb_initialDist) * lb_pinchScale;
+
+                // Clamp scale (min 1, max 3)
+                lb_currentScale = Math.min(Math.max(1, scale), 3);
+
+                const lightbox = document.getElementById('lightbox');
+                const img = lightbox.querySelector('img');
+                if (img) {
+                    gsap.set(img, { scale: lb_currentScale });
+                }
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (e.touches.length < 2) {
+                lb_pinching = false;
+                // Store the current scale so next pinch starts from here
+                lb_pinchScale = lb_currentScale;
+
+                // Optional: Snap back if below 1 (though we clamp at 1)
+                // If user releases, we keep the zoom level (sticky zoom)
+            }
+        }
+
         function openLightbox(cardElement) {
+            // Prevent opening if user is just scrolling/dragging (simple check)
+            // But usually click event is fine. 
+
             const img = cardElement.querySelector('img');
             if (!img) return;
 
             const lightbox = document.getElementById('lightbox');
+
+            // TAP TO CLOSE Logic setup
+            lightbox.onclick = (e) => {
+                // Only close if not pinching and if the click is on the background OR the image (user request: "tap once to close")
+                if (!lb_pinching) {
+                    closeLightbox();
+                }
+            };
+
             activeLightboxImg = img;
             const isMobile = window.innerWidth < 768;
 
@@ -1435,8 +1496,24 @@
             lightbox.style.display = 'flex';
 
             if (isMobile) {
-                // NO ANIMATION on mobile
+                // LIGHTBOX OPEN ANIMATION (Mobile)
+                // 1. Reset Gesture State
+                lb_initialDist = 0;
+                lb_currentScale = 1;
+                lb_pinching = false;
+                lb_pinchScale = 1;
+
+                // 2. Attach Listeners
+                lightbox.addEventListener('touchstart', handleTouchStart, { passive: true });
+                lightbox.addEventListener('touchmove', handleTouchMove, { passive: false }); // non-passive to prevent scroll
+                lightbox.addEventListener('touchend', handleTouchEnd);
+
+                // 3. Simple POP Animation
                 gsap.set(lightbox, { backgroundColor: "rgba(0,0,0,0.95)" });
+                gsap.fromTo(lbImg,
+                    { scale: 0.8, opacity: 0 },
+                    { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.7)" }
+                );
             } else {
                 // FIX: Start Transparent & Animate BG
                 gsap.set(lightbox, { backgroundColor: "rgba(0,0,0,0)" });
@@ -1458,12 +1535,32 @@
 
             if (activeLightboxImg && lbImg) {
                 if (isMobile) {
-                    // INSTANT CLOSE
-                    lightbox.style.display = 'none';
-                    lightbox.innerHTML = '';
-                    if (activeLightboxImg) delete activeLightboxImg.dataset.flipId;
-                    activeLightboxImg = null;
-                    lightbox.style.backgroundColor = "";
+                    // LIGHTBOX CLOSE (Mobile: Return to Source)
+
+                    // 1. Remove Listeners
+                    lightbox.removeEventListener('touchstart', handleTouchStart);
+                    lightbox.removeEventListener('touchmove', handleTouchMove);
+                    lightbox.removeEventListener('touchend', handleTouchEnd);
+
+                    // 2. Animate BG out
+                    gsap.to(lightbox, { backgroundColor: "rgba(0,0,0,0)", duration: 0.5, ease: "power2.out" });
+
+                    // 3. Flip Back (Simulated Return)
+                    // We rely on Flip to calculate the difference from current Zoomed state to original thumbnail
+
+                    // Ensure we are fitting the CURRENT CLONE to the ORIGINAL IMAGE
+                    Flip.fit(lbImg, activeLightboxImg, {
+                        scale: true,
+                        duration: 0.5,
+                        ease: "power3.inOut",
+                        onComplete: () => {
+                            lightbox.style.display = 'none';
+                            lightbox.innerHTML = '';
+                            if (activeLightboxImg) delete activeLightboxImg.dataset.flipId;
+                            activeLightboxImg = null;
+                            lightbox.style.backgroundColor = "";
+                        }
+                    });
                     return;
                 }
 
