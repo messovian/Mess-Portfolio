@@ -1415,6 +1415,7 @@
 
             const lightbox = document.getElementById('lightbox');
             activeLightboxImg = img;
+            const isMobile = window.innerWidth < 768;
 
             // FIX: Assign shared ID for Flip identity
             const flipId = 'lightbox-' + Date.now();
@@ -1433,23 +1434,39 @@
             lightbox.appendChild(lbImg);
             lightbox.style.display = 'flex';
 
-            // FIX: Start Transparent & Animate BG
-            gsap.set(lightbox, { backgroundColor: "rgba(0,0,0,0)" });
-            gsap.to(lightbox, { backgroundColor: "rgba(0,0,0,0.95)", duration: 1, ease: "power2.out" });
+            if (isMobile) {
+                // NO ANIMATION on mobile
+                gsap.set(lightbox, { backgroundColor: "rgba(0,0,0,0.95)" });
+            } else {
+                // FIX: Start Transparent & Animate BG
+                gsap.set(lightbox, { backgroundColor: "rgba(0,0,0,0)" });
+                gsap.to(lightbox, { backgroundColor: "rgba(0,0,0,0.95)", duration: 1, ease: "power2.out" });
 
-            Flip.from(state, {
-                targets: lbImg,
-                duration: 1,
-                ease: "power3.inOut",
-                scale: true
-            });
+                Flip.from(state, {
+                    targets: lbImg,
+                    duration: 1,
+                    ease: "power3.inOut",
+                    scale: true
+                });
+            }
         }
 
         function closeLightbox() {
             const lightbox = document.getElementById('lightbox');
             const lbImg = lightbox.querySelector('img');
+            const isMobile = window.innerWidth < 768;
 
             if (activeLightboxImg && lbImg) {
+                if (isMobile) {
+                    // INSTANT CLOSE
+                    lightbox.style.display = 'none';
+                    lightbox.innerHTML = '';
+                    if (activeLightboxImg) delete activeLightboxImg.dataset.flipId;
+                    activeLightboxImg = null;
+                    lightbox.style.backgroundColor = "";
+                    return;
+                }
+
                 // FIX: Animate BG out
                 gsap.to(lightbox, { backgroundColor: "rgba(0,0,0,0)", duration: 1, ease: "power2.out" });
 
