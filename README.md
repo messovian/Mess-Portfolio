@@ -6,5 +6,4 @@ If you found any error at https://messovian.github.io/Mess-Portfolio/ , consider
 
 If you have any suggestion, considering go to the issue tab and suggest that cool feature! It would mean a lot!
 
-
 Thank you.
