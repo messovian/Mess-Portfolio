@@ -1607,16 +1607,27 @@
 
         // --- Photography Functions Removed ---
 
-        // Simple fade in for hero content
-        gsap.fromTo(".hero h1",
-            { y: 30, opacity: 0 },
-            { y: 0, opacity: 1, duration: 1, ease: "power2.out", delay: 0.5 }
-        );
+        // 4. NEW: Hero Content Reveal (Triggered after loading)
+        function revealSiteContent() {
+            gsap.to(".hero h1", {
+                y: 0,
+                opacity: 1,
+                duration: 1,
+                ease: "power2.out"
+            });
 
-        gsap.fromTo(".hero > *:not(.title-wrapper)",
-            { y: 30, opacity: 0 },
-            { y: 0, opacity: 1, duration: 1, stagger: 0.2, ease: "power2.out", delay: 0.7 }
-        );
+            gsap.to(".hero > *:not(.title-wrapper)", {
+                y: 0,
+                opacity: 1,
+                duration: 1,
+                stagger: 0.2,
+                ease: "power2.out",
+                delay: 0.2
+            });
+        }
+
+        // Initially Hide Hero Content (Prevent Flash)
+        gsap.set(".hero h1, .hero > *:not(.title-wrapper)", { y: 30, opacity: 0 });
 
         // --- 4. NEW: Splits Hero Description into Words ---
         const heroDesc = document.querySelector('.hero-description');
@@ -1957,6 +1968,7 @@
             // Device Check
             const isMobile = window.innerWidth < 768;
             const particleCount = isMobile ? 20 : 60;
+            const createdParticles = []; // For animation trigger
 
             for (let i = 0; i < particleCount; i++) {
                 const particle = document.createElement('div');
@@ -1967,8 +1979,9 @@
                 const size = gsap.utils.random(50, 350);
                 const x = gsap.utils.random(0, window.innerWidth);
                 const y = gsap.utils.random(0, window.innerHeight);
+                const targetOp = gsap.utils.random(0.1, 0.4);
 
-                // Style
+                // Style - START INVISIBLE (Scale 0)
                 gsap.set(particle, {
                     width: size,
                     height: size,
@@ -1976,7 +1989,8 @@
                     yPercent: -50,
                     x: x,
                     y: y,
-                    opacity: gsap.utils.random(0.1, 0.4),
+                    opacity: 0,      // Start hidden
+                    scale: 0,        // Start small
                     filter: `blur(${gsap.utils.random(2, 10)}px)`,
                     backgroundColor: i % 3 === 0 ? '#ffb7b2' : '#ffa6c9'
                 });
@@ -1986,17 +2000,48 @@
                     element: particle,
                     x: x,
                     y: y,
-                    // Velocity (Super Slow wander)
                     vx: gsap.utils.random(-0.05, 0.05),
                     vy: gsap.utils.random(-0.05, 0.05),
-                    // Wander Target (Acceleration)
                     wanderTheta: gsap.utils.random(0, Math.PI * 2),
                     size: size
                 });
+
+                createdParticles.push({ el: particle, targetOp: targetOp });
             }
 
             // Start Unified Loop
             gsap.ticker.add(updateBokehVelocity);
+
+            // Trigger Loading Sequence
+            playLoadingSequence(createdParticles);
+        }
+
+        function playLoadingSequence(particles) {
+            // "Pop up" particles over 2 seconds
+            // We use a staggered animation for visual flair
+
+            // 1. Shuffle array for random pop-in order (Fisher-Yates)
+            for (let i = particles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [particles[i], particles[j]] = [particles[j], particles[i]];
+            }
+
+            // 2. Animate In
+            // Total duration is roughly 2 seconds. 
+            // We give each particle a random delay within that window.
+
+            particles.forEach((p, index) => {
+                gsap.to(p.el, {
+                    scale: 1,
+                    opacity: p.targetOp,
+                    duration: 1.5,
+                    ease: "back.out(1.7)", // Pop effect
+                    delay: gsap.utils.random(0, 1.5) // Random start within the first 1.5s
+                });
+            });
+
+            // 3. Reveal Content after 2 seconds
+            setTimeout(revealSiteContent, 2000);
         }
 
         function updateBokehVelocity() {
