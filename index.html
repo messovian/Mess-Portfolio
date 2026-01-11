@@ -1200,6 +1200,13 @@
                 easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t))
             });
 
+            // FIX: ResizeObserver for lazy loaded images
+            const resizeObserver = new ResizeObserver(() => {
+                if (modalLenis) modalLenis.resize();
+            });
+            resizeObserver.observe(detailsContent);
+            modalLenis.observer = resizeObserver;
+
             // REMOVED isolated 'modalRaf' loop to fix jitter.
             // It is now handled by the main gsap.ticker above.
 
@@ -1317,6 +1324,7 @@
 
             // DESTROY MODAL SCROLL
             if (modalLenis) {
+                if (modalLenis.observer) modalLenis.observer.disconnect();
                 modalLenis.destroy();
                 modalLenis = null;
             }
