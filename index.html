@@ -1180,6 +1180,9 @@
             if (isAnimating) return; // Ignore if busy
             isAnimating = true;
 
+            // --- BOKEH OPTIMIZATION: EXPLODE & STOP ---
+            setBokehTrigger('EXPLODE');
+
             const card = document.getElementById(cardId);
             const img = card.querySelector('img');
 
@@ -1316,6 +1319,9 @@
             if (!activeCardImage || !openedCardId) return;
             if (isAnimating) return; // Ignore if busy
             isAnimating = true;
+
+            // --- BOKEH RESTORE: IMPLODE & START ---
+            setBokehTrigger('IMPLODE');
 
             // UNLOCK MAIN SCROLL
             if (window.lenis) window.lenis.start();
@@ -2053,41 +2059,140 @@
             setTimeout(revealSiteContent, 2000);
         }
 
+        // --- BOKEH MODE CONTROL ---
+        let bokehMode = 'NORMAL'; // NORMAL, EXPLODE, IMPLODE
+        let bokehTimer = null;
+
+        function setBokehTrigger(action) {
+            const container = document.getElementById('bokeh-container');
+
+            if (action === 'EXPLODE') {
+                bokehMode = 'EXPLODE';
+                // Ensure runs
+                gsap.ticker.add(updateBokehVelocity);
+
+                // Stop loop after they fly away to save CPU
+                clearTimeout(bokehTimer);
+                bokehTimer = setTimeout(() => {
+                    gsap.ticker.remove(updateBokehVelocity);
+                    if (container) gsap.set(container, { autoAlpha: 0 }); // Hide fully
+                }, 1200);
+            }
+
+            if (action === 'IMPLODE') {
+                if (container) gsap.set(container, { autoAlpha: 1 });
+
+                // 1. Reset Particles OFF SCREEN
+                const cx = window.innerWidth / 2;
+                const cy = window.innerHeight / 2;
+                const radius = Math.max(window.innerWidth, window.innerHeight) * 0.8;
+
+                bokehState.particles.forEach(p => {
+                    // Assign random target on screen (normal distribution)
+                    p.targetX = gsap.utils.random(0, window.innerWidth);
+                    p.targetY = gsap.utils.random(0, window.innerHeight);
+
+                    // Place far out (extend vector from center -> target)
+                    // This ensures they fly in from the correct direction relative to where they will land
+                    const angle = Math.atan2(p.targetY - cy, p.targetX - cx);
+
+                    p.x = cx + Math.cos(angle) * radius;
+                    p.y = cy + Math.sin(angle) * radius;
+
+                    // Reset velocity
+                    p.vx = 0;
+                    p.vy = 0;
+                });
+
+                bokehMode = 'IMPLODE';
+                gsap.ticker.add(updateBokehVelocity);
+
+                // Switch back to normal after they arrive
+                clearTimeout(bokehTimer);
+                bokehTimer = setTimeout(() => {
+                    bokehMode = 'NORMAL';
+                }, 2000);
+            }
+        }
+
         function updateBokehVelocity() {
             const width = window.innerWidth;
             const height = window.innerHeight;
-            const radius = 300; // Interaction Radius
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const mouseRadius = 300;
 
             bokehState.particles.forEach(p => {
-                // 1. WANDER FORCE (Smoothly change direction)
-                // Random walk angle
-                p.wanderTheta += gsap.utils.random(-0.05, 0.05);
 
-                // Apply small acceleration in that direction
+                // --- MODE: EXPLODE (Push Away) ---
+                if (bokehMode === 'EXPLODE') {
+                    const dx = p.x - centerX;
+                    const dy = p.y - centerY;
+                    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+                    // Strong outward force
+                    const force = 1.5;
+                    p.vx += (dx / dist) * force;
+                    p.vy += (dy / dist) * force;
+
+                    p.x += p.vx;
+                    p.y += p.vy;
+
+                    // No wrapping, let them fly out
+                    gsap.set(p.element, { x: p.x, y: p.y });
+                    return;
+                }
+
+                // --- MODE: IMPLODE (Pull In) ---
+                if (bokehMode === 'IMPLODE') {
+                    // Pull towards individual target (scattered), not center
+                    const tx = p.targetX || centerX;
+                    const ty = p.targetY || centerY;
+
+                    const dx = p.x - tx;
+                    const dy = p.y - ty;
+                    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+                    // Pull force
+                    const force = -0.05; // Gentle pull
+
+                    // Simple spring physics
+                    p.vx += dx * force * 0.05;
+                    p.vy += dy * force * 0.05;
+
+                    // Dampen
+                    p.vx *= 0.85;
+                    p.vy *= 0.85;
+
+                    p.x += p.vx;
+                    p.y += p.vy;
+
+                    gsap.set(p.element, { x: p.x, y: p.y });
+                    return;
+                }
+
+                // --- MODE: NORMAL ---
+
+                // 1. WANDER FORCE
+                p.wanderTheta += gsap.utils.random(-0.05, 0.05);
                 const speedObj = 0.005;
                 p.vx += Math.cos(p.wanderTheta) * speedObj;
                 p.vy += Math.sin(p.wanderTheta) * speedObj;
 
-                // Friction (Damping) to prevent infinite acceleration
+                // Friction
                 p.vx *= 0.96;
                 p.vy *= 0.96;
 
-                // 2. MOUSE REPULSION (Changes Velocity PERMANENTLY)
+                // 2. MOUSE REPULSION
                 const dx = p.x - bokehState.mouseX;
                 const dy = p.y - bokehState.mouseY;
                 const distSq = dx * dx + dy * dy;
 
-                // Optimization: distSq check avoids Math.sqrt many times
-                if (distSq < radius * radius) {
+                if (distSq < mouseRadius * mouseRadius) {
                     const dist = Math.sqrt(distSq);
-                    if (dist > 0) { // Avoid div/0
-                        const force = (radius - dist) / radius; // 0 to 1
-
-                        // Push Strength (acceleration amount)
-                        // This adds to velocity, permanently altering trajectory
+                    if (dist > 0) {
+                        const force = (mouseRadius - dist) / mouseRadius;
                         const pushStrength = 0.05;
-
-                        // Direction Normal * Force * Strength
                         p.vx += (dx / dist) * force * pushStrength;
                         p.vy += (dy / dist) * force * pushStrength;
                     }
@@ -2097,7 +2202,7 @@
                 p.x += p.vx;
                 p.y += p.vy;
 
-                // 4. SCREEN WRAPPING (Infinite Canvas)
+                // 4. SCREEN WRAPPING
                 const margin = p.size;
                 if (p.x > width + margin) p.x = -margin;
                 if (p.x < -margin) p.x = width + margin;
