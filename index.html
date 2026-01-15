@@ -1154,18 +1154,18 @@
                     </div>
 
                     <div class="masonry-grid">
-                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/Portrait 1.webp" loading="lazy"></div>
-                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/nature 1.webp" loading="lazy"></div>
-                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/wildlife 1.webp" loading="lazy"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/Portrait 1.webp" loading="eager" onload="if(window.modalLenis) window.modalLenis.resize();"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/nature 1.webp" loading="eager" onload="if(window.modalLenis) window.modalLenis.resize();"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/wildlife 1.webp" loading="eager" onload="if(window.modalLenis) window.modalLenis.resize();"></div>
                         
-                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/Portrait 2.webp" loading="lazy"></div>
-                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/object 1.webp" loading="lazy"></div>
-                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/nature 3.webp" loading="lazy"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/Portrait 2.webp" loading="eager" onload="if(window.modalLenis) window.modalLenis.resize();"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/object 1.webp" loading="eager" onload="if(window.modalLenis) window.modalLenis.resize();"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/nature 3.webp" loading="eager" onload="if(window.modalLenis) window.modalLenis.resize();"></div>
                         
-                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/wildlife 2.webp" loading="lazy"></div>
-                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/Portrait 5.webp" loading="lazy"></div>
-                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/object 3.webp" loading="lazy"></div>
-                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/wildlife 4.webp" loading="lazy"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/wildlife 2.webp" loading="eager" onload="if(window.modalLenis) window.modalLenis.resize();"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/Portrait 5.webp" loading="eager" onload="if(window.modalLenis) window.modalLenis.resize();"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/object 3.webp" loading="eager" onload="if(window.modalLenis) window.modalLenis.resize();"></div>
+                        <div class="photo-card hover-trigger" onclick="openLightbox(this)"><img src="images/Photography/wildlife 4.webp" loading="eager" onload="if(window.modalLenis) window.modalLenis.resize();"></div>
                     </div>
 
                     <div class="tech-specs" style="margin-top: 5rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); opacity: 0.5; font-family: monospace; font-size: 0.9rem; text-align: center;">
@@ -1205,13 +1205,22 @@
 
             // FIX: ResizeObserver for lazy loaded images
             const resizeObserver = new ResizeObserver(() => {
-                if (modalLenis) modalLenis.resize();
+                if (window.modalLenis) window.modalLenis.resize(); // Ensure we use window.modalLenis
             });
             resizeObserver.observe(detailsContent);
             modalLenis.observer = resizeObserver;
 
-            // REMOVED isolated 'modalRaf' loop to fix jitter.
-            // It is now handled by the main gsap.ticker above.
+            // FIX: Assign to window for global access (from onload handlers)
+            window.modalLenis = modalLenis;
+
+            // SAFETY POLL: Force resize for the first 2 seconds to catch any rendering lag
+            let pollCount = 0;
+            const pollInterval = setInterval(() => {
+                if (window.modalLenis) window.modalLenis.resize();
+                pollCount++;
+                if (pollCount > 10) clearInterval(pollInterval); // Stop after 2s (10 * 200ms)
+            }, 200);
+            modalLenis.pollInterval = pollInterval; // Store to clear later
 
             // FORCE CURSOR RESET (Fix: Access variable directly)
             if (cursor) cursor.classList.remove('active');
@@ -1331,8 +1340,10 @@
             // DESTROY MODAL SCROLL
             if (modalLenis) {
                 if (modalLenis.observer) modalLenis.observer.disconnect();
+                if (modalLenis.pollInterval) clearInterval(modalLenis.pollInterval); // Stop polling
                 modalLenis.destroy();
                 modalLenis = null;
+                window.modalLenis = null; // Clear global ref
             }
 
             // FORCE CURSOR RESET (Fix: Access variable directly)
