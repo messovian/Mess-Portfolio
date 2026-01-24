@@ -4,7 +4,7 @@ Hewwo, this is my personal portfolio, this is where I will showcase to you my be
 
 If you found any error at https://messovian.github.io/Mess-Portfolio/, considering go to the issue tab and report the bug! It would mean a lot!
 
-If you have any suggestion, considering go to the issue tab and suggest that cool feature! It would mean a lot!
+If you have any suggestion, considering go to the issue tab and suggest that cool feature! It would mean a lot to me!
 
 Thank you! I appericate it very much.
 Have a good day!@@
