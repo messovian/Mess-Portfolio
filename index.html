@@ -873,6 +873,123 @@
             mix-blend-mode: screen;
             will-change: transform, opacity;
         }
+
+        /* --- ABOUT ME SECTION --- */
+        .about-trigger {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            z-index: 100;
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .about-trigger:hover {
+            background: var(--accent-color);
+            color: #000;
+            border-color: var(--accent-color);
+            transform: scale(1.05);
+        }
+
+        .about-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10020;
+            display: none;
+            opacity: 0;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            /* Initially none */
+        }
+
+        /* The blurred backdrop */
+        .about-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 5, 0.6);
+            backdrop-filter: blur(20px);
+            /* Strong blur */
+            -webkit-backdrop-filter: blur(20px);
+            opacity: 0;
+        }
+
+        .about-content-card {
+            width: 600px;
+            /* Initial width */
+            max-width: 90vw;
+            padding: 3rem;
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            position: relative;
+            transform-origin: top right;
+            /* Expand from trigger */
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .about-title {
+            font-size: 3rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .about-subtitle {
+            font-size: 1.2rem;
+            font-weight: 300;
+            opacity: 0;
+            transform: translateY(20px);
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 1rem;
+        }
+
+        .about-text {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #ddd;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .about-text p {
+            margin-bottom: 1rem;
+        }
+
+        .about-close {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: color 0.3s;
+        }
+
+        .about-close:hover {
+            color: var(--accent-color);
+        }
     </style>
 </head>
 
@@ -884,7 +1001,8 @@
     <div class="cursor"></div>
     <div class="cursor-tooltip" id="cursor-tooltip"></div>
 
-    <section class="hero">
+    <section class="hero" id="hero-section">
+        <div class="about-trigger hover-trigger" id="about-trigger">About Me</div>
         <div class="title-wrapper">
             <h1>Mess Ovian <span class="messa-suffix" style="font-style: italic; font-weight: 300;">(Messa)</span></h1>
             <span class="pronouns">(she/her)</span>
@@ -1048,6 +1166,28 @@
 
     <div class="lightbox" id="lightbox" onclick="closeLightbox()">
         <!-- Image injected here -->
+    </div>
+
+    <!-- ABOUT ME OVERLAY -->
+    <div class="about-overlay" id="about-overlay">
+        <div class="about-backdrop" id="about-backdrop" onclick="closeAbout()"></div>
+        <div class="about-content-card" id="about-card">
+            <div class="about-close hover-trigger" onclick="closeAbout()">✕</div>
+            <h2 class="about-title">About Me</h2>
+            <div class="about-subtitle">Visual Artist & Storyteller</div>
+            <div class="about-text">
+                <p>Hello! I'm <strong>Messa</strong> (Mess Ovian). I'm a passionate creator based in the digital realm,
+                    obsessed with capturing moments that evoke raw emotion.</p>
+                <p>My journey is a blend of <strong>photography</strong>, <strong>cinematography</strong>, and
+                    <strong>creative direction</strong>. I don't just document reality; I try to enhance it, finding the
+                    magic in the mundane and the neon in the night.
+                </p>
+                <p>I believe in the beauty of imperfection and the power of a single frame to tell a thousand stories.
+                    Whether it's through a lens or a digital canvas, my goal is always the same: <em>to make you feel
+                        something.</em></p>
+                <p>Let's create something unforgettable together.</p>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -1631,7 +1771,96 @@
             }
         }
 
+        // --- ABOUT ME LOGIC ---
+        const aboutTrigger = document.getElementById('about-trigger');
+        const aboutOverlay = document.getElementById('about-overlay');
+        const aboutCard = document.getElementById('about-card');
+        const aboutBackdrop = document.getElementById('about-backdrop');
+        const heroSection = document.getElementById('hero-section');
+        let isAboutOpen = false;
+
+        if (aboutTrigger) {
+            aboutTrigger.addEventListener('click', () => {
+                if (isAboutOpen) return;
+                isAboutOpen = true;
+
+                // 1. Prepare Overlay
+                aboutOverlay.style.display = 'flex';
+                aboutOverlay.style.pointerEvents = 'all';
+
+                // 2. Animation Sequence
+                const tl = gsap.timeline();
+
+                // Blur: Fade in the backdrop (which has the blur filter)
+                tl.to(aboutBackdrop, { opacity: 1, duration: 0.8, ease: "power2.out" });
+
+                // Reveal Overlay Container
+                tl.to(aboutOverlay, { opacity: 1, duration: 0, }, "<");
+
+                // Animate Card "Unfolding"
+                tl.fromTo(aboutCard,
+                    { scale: 0, opacity: 0, x: 200, y: -200, borderRadius: "50%" },
+                    { scale: 1, opacity: 1, x: 0, y: 0, borderRadius: "20px", duration: 0.8, ease: "back.out(1.2)" },
+                    "<"
+                );
+
+                // Stagger Content
+                tl.fromTo([".about-title", ".about-subtitle", ".about-text", ".about-close"],
+                    { y: 20, opacity: 0 },
+                    {
+                        y: 0,
+                        opacity: 1,
+                        duration: 0.6,
+                        stagger: 0.1,
+                        ease: "power2.out"
+                    },
+                    "-=0.4"
+                );
+
+                // Lock Scroll
+                if (window.lenis) window.lenis.stop();
+            });
+        }
+
+        function closeAbout() {
+            if (!isAboutOpen) return;
+
+            const tl = gsap.timeline({
+                onComplete: () => {
+                    isAboutOpen = false;
+                    aboutOverlay.style.display = 'none';
+                    aboutOverlay.style.pointerEvents = 'none';
+                    if (window.lenis) window.lenis.start();
+                }
+            });
+
+            // Hide Content
+            tl.to([".about-title", ".about-subtitle", ".about-text", ".about-close"], {
+                y: 20,
+                opacity: 0,
+                duration: 0.4,
+                stagger: 0.05,
+                ease: "power2.in"
+            });
+
+            // Shrink Card back to top right
+            tl.to(aboutCard, {
+                scale: 0,
+                opacity: 0,
+                x: 200,
+                y: -200,
+                borderRadius: "50%",
+                duration: 0.6,
+                ease: "power2.in"
+            }, "-=0.2");
+
+            // Fade out backdrop
+            tl.to(aboutBackdrop, { opacity: 0, duration: 0.6 }, "<");
+            tl.to(aboutOverlay, { opacity: 0, duration: 0 }, ">");
+        }
+
         // --- Photography Functions Removed ---
+
 
         // 4. NEW: Hero Content Reveal (Triggered after loading)
         function revealSiteContent() {
