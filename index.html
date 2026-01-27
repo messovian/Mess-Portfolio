@@ -1788,18 +1788,28 @@
                 aboutOverlay.style.display = 'flex';
                 aboutOverlay.style.pointerEvents = 'all';
 
+                // --- DYNAMIC POSITION CALCULATION ---
+                // Calculate button position relative to screen center
+                const btnRect = aboutTrigger.getBoundingClientRect();
+                const btnCX = btnRect.left + btnRect.width / 2;
+                const btnCY = btnRect.top + btnRect.height / 2;
+                const screenCX = window.innerWidth / 2;
+                const screenCY = window.innerHeight / 2;
+                const startX = btnCX - screenCX;
+                const startY = btnCY - screenCY;
+
                 // 2. Animation Sequence
                 const tl = gsap.timeline();
 
-                // Blur: Fade in the backdrop (which has the blur filter)
+                // Blur: Fade in the backdrop
                 tl.to(aboutBackdrop, { opacity: 1, duration: 0.8, ease: "power2.out" });
 
                 // Reveal Overlay Container
                 tl.to(aboutOverlay, { opacity: 1, duration: 0, }, "<");
 
-                // Animate Card "Unfolding"
+                // Animate Card "Unfolding" from Button Position
                 tl.fromTo(aboutCard,
-                    { scale: 0, opacity: 0, x: 200, y: -200, borderRadius: "50%" },
+                    { scale: 0.1, opacity: 0, x: startX, y: startY, borderRadius: "30px", transformOrigin: "center" },
                     { scale: 1, opacity: 1, x: 0, y: 0, borderRadius: "20px", duration: 0.8, ease: "back.out(1.2)" },
                     "<"
                 );
@@ -1825,12 +1835,24 @@
         function closeAbout() {
             if (!isAboutOpen) return;
 
+            // Recalculate Target (Button Position)
+            const btnRect = aboutTrigger.getBoundingClientRect();
+            const btnCX = btnRect.left + btnRect.width / 2;
+            const btnCY = btnRect.top + btnRect.height / 2;
+            const screenCX = window.innerWidth / 2;
+            const screenCY = window.innerHeight / 2;
+            const targetX = btnCX - screenCX;
+            const targetY = btnCY - screenCY;
+
             const tl = gsap.timeline({
                 onComplete: () => {
                     isAboutOpen = false;
                     aboutOverlay.style.display = 'none';
                     aboutOverlay.style.pointerEvents = 'none';
                     if (window.lenis) window.lenis.start();
+
+                    // Cleanup
+                    gsap.set(aboutCard, { clearProps: "all" });
                 }
             });
 
@@ -1843,13 +1865,14 @@
                 ease: "power2.in"
             });
 
-            // Shrink Card back to top right
+            // Shrink Card back to Button
             tl.to(aboutCard, {
-                scale: 0,
+                scale: 0.1,
                 opacity: 0,
-                x: 200,
-                y: -200,
-                borderRadius: "50%",
+                x: targetX,
+                y: targetY,
+                borderRadius: "30px",
+                transformOrigin: "center",
                 duration: 0.6,
                 ease: "power2.in"
             }, "-=0.2");
